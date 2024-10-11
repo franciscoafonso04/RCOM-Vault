@@ -4,11 +4,28 @@
 #ifndef _LINK_LAYER_H_
 #define _LINK_LAYER_H_
 
+#define FLAG 0x7E
+#define ADDRESS_TX 0x03
+#define ADDRESS_RX 0x01
+#define CONTROL_SET 0x03
+#define CONTROL_UA 0x07
+
 typedef enum
 {
     LlTx,
     LlRx,
 } LinkLayerRole;
+
+typedef enum
+{
+    START_S = 0,
+    FLAG_RCV_S,
+    A_RCV_S,
+    C_RCV_S,
+    BCC_OK_S,
+    STOP_S
+
+} State;
 
 typedef struct
 {
