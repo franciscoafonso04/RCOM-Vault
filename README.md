@@ -5,10 +5,7 @@ Welcome to the **RCOM-Hub**, a repository containing our projects for the **Comp
 ## Projects
 
 ### 1. **Project 1: [Data Link Protocol]**
-   - **Description**: Implement a data link layer protocol, which implements transmitter and receiver functionality to transfer a file
-stored on a computer hard disk between computers connected through a RS-232
-serial cable.
-   - **Key Concepts**: [e.g., ARQ Protocols, Error Detection, Data Link Layer]
+   - **Description**: Implement a data link layer protocol, which implements transmitter and receiver functionality to transfer a file stored on a computer hard disk between computers connected through a RS-232 serial cable.
 
  ## Developed by:
 - **Alexandre Ramos** up202208028
