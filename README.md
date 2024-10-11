@@ -10,5 +10,7 @@ stored on a computer hard disk between computers connected through a RS-232
 serial cable.
    - **Key Concepts**: [e.g., ARQ Protocols, Error Detection, Data Link Layer]
 
- 
+ ## Developed by:
+- **Alexandre Ramos** up202208028
+- **Francisco Afonso** up202208115
 
