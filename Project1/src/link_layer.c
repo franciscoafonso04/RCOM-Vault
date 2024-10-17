@@ -5,6 +5,7 @@
 
 int alarmEnabled, alarmCount;
 int Ns, Nr;
+int timeout, nTries;
 
 void alarmHandler(int signal) {
     alarmEnabled = FALSE;
@@ -23,6 +24,8 @@ int llopen(LinkLayer connectionParameters)
 {
     alarmEnabled = FALSE;
     alarmCount = 0;
+    timeout = connectionParameters.timeout;
+    nTries = connectionParameters.nRetransmissions;
     (void)signal(SIGALRM, alarmHandler);
     unsigned char buf[6] = {0};
 
@@ -49,7 +52,7 @@ int llopen(LinkLayer connectionParameters)
 
             printf("%d bytes written\n", bytes);
 
-            alarm(connectionParameters.timeout);
+            alarm(timeout);
             alarmEnabled = TRUE;
         }
 
@@ -112,7 +115,7 @@ int llopen(LinkLayer connectionParameters)
                 break;
         }
 
-        if(alarmCount >= connectionParameters.nRetransmissions){
+        if(alarmCount >= nTries){
             perror("reached limit of retransmissions\n");
             return -1;
         }
@@ -145,7 +148,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     int answer = 0;
     
-    while (alarmCount != 3) {
+    while (alarmCount != nTries) {
 
         if (alarmEnabled == FALSE || answer == -1) {
             unsigned char frame[BUF_SIZE] = {0};
@@ -181,11 +184,11 @@ int llwrite(const unsigned char *buf, int bufSize)
             frame[bufSize + 5] = FLAG;
             
             
-            alarm(4); // ver variavel
+            alarm(timeout);
             alarmEnabled = TRUE;
         }
 
-    } // depois vê-se a var
+    } 
 
     
     // TODO
