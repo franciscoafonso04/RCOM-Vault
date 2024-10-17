@@ -4,6 +4,9 @@
 #ifndef _LINK_LAYER_H_
 #define _LINK_LAYER_H_
 
+#include <signal.h>
+#include "serial_port.h"
+
 #define FLAG 0x7E
 #define ADDRESS_TX 0x03
 #define ADDRESS_RX 0x01

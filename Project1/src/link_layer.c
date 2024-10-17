@@ -1,11 +1,9 @@
 // Link layer protocol implementation
 
-#include <signal.h>
 #include "link_layer.h"
-#include "serial_port.h"
 
-int alarmEnabled = FALSE;
-int alarmCount = 0;
+int alarmEnabled;
+int alarmCount;
 
 void alarmHandler(int signal) {
     alarmEnabled = FALSE;
@@ -22,6 +20,8 @@ void alarmHandler(int signal) {
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
+    alarmEnabled = FALSE;
+    alarmCount = 0;
     (void)signal(SIGALRM, alarmHandler);
     unsigned char buf[BUF_SIZE] = {0};
 
@@ -134,6 +134,24 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+    if (bufSize <= 0) return -1;
+    
+    alarmEnabled = FALSE;
+    alarmCount = 0;
+
+    int answer = 0;
+
+    while (alarmCount != 3) {
+
+        if (alarmEnabled == FALSE || answer == -1) {
+
+            
+            alarm(4); // ver variavel
+            alarmEnabled = TRUE;
+        }
+    } // depois vê-se a var
+
+    
     // TODO
 
     return 0;
