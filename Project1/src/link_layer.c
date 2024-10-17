@@ -4,7 +4,6 @@
 #include "link_layer.h"
 #include "serial_port.h"
 
-// achas que posso passar esta função para aqui? outra alternativa seria criar mesmo um alarm.c alarm.h, é que caso contrário não temos o alarm handler
 int alarmEnabled = FALSE;
 int alarmCount = 0;
 
@@ -27,7 +26,7 @@ int llopen(LinkLayer connectionParameters)
     unsigned char buf[BUF_SIZE] = {0};
 
     int fd = openSerialPort(connectionParameters.serialPort, connectionParameters.baudRate);
-    if (fd < 0) // && alarmCount == 0) acabamos de definir o alarmCount como 0 na linha anterior
+    if (fd < 0) // && alarmCount == 0)
     {
         return -1;
     }
@@ -112,7 +111,7 @@ int llopen(LinkLayer connectionParameters)
 
         if(alarmCount >= connectionParameters.nRetransmissions){
             perror("reached limit of retransmissions\n");
-            break;
+            return -1;
         }
     }
 
@@ -123,11 +122,11 @@ int llopen(LinkLayer connectionParameters)
         buf[3] = buf[1] ^ buf[2];
         buf[4] = 0x7E;
 
-        int bytes = write(fd, buf, BUF_SIZE); // Send all 5 bytes including
+        int bytes = write(fd, buf, BUF_SIZE);
         printf("%d bytes written\n", bytes);
     } 
 
-    return 1;
+    return fd;
 }
 
 ////////////////////////////////////////////////
