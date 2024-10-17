@@ -1,5 +1,7 @@
 #include "tools.h"
 
+extern int alarmEnabled, alarmCount;
+
 void insert(int arr[], int *n, int value, int pos) {
     // First, make sure pos is a valid index within the array
     if (pos < 0 || pos > *n) {
@@ -17,4 +19,11 @@ void insert(int arr[], int *n, int value, int pos) {
 
     // Increase the size of the array (if using dynamic allocation)
     (*n)++;
+}
+
+void alarmHandler(int signal) {
+    alarmEnabled = 0;
+    alarmCount++;
+
+    printf("Alarm #%d\n", alarmCount);
 }

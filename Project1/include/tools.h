@@ -36,6 +36,10 @@ typedef enum
 
 } State;
 
+int alarmEnabled, alarmCount;
+
 void insert(int arr[], int *n, int value, int pos);
+
+void alarmHandler(int signal);
 
 #endif // _TOOLS_H_

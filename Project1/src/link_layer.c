@@ -1,18 +1,10 @@
 // Link layer protocol implementation
 
-#include "link_layer.h"
-#include "tools.h"
+#include "states.h"
 
-int alarmEnabled, alarmCount;
-int Ns, Nr;
+extern int alarmEnabled, alarmCount;
+int iFrame = 0;
 int timeout, nTries;
-
-void alarmHandler(int signal) {
-    alarmEnabled = FALSE;
-    alarmCount++;
-
-    printf("Alarm #%d\n", alarmCount);
-}
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
@@ -47,7 +39,6 @@ int llopen(LinkLayer connectionParameters)
             buf[3] = buf[1] ^ buf[2];
             buf[4] = FLAG;
 
-
             int bytes = writeBytesSerialPort(*buf, 5);
 
             printf("%d bytes written\n", bytes);
@@ -56,64 +47,11 @@ int llopen(LinkLayer connectionParameters)
             alarmEnabled = TRUE;
         }
 
-        int bytes = readByteSerialPort(*buf);
-        if (!bytes) continue;
+        int byte = readByteSerialPort(*buf);
+        if (!byte) continue;
         printf("receivedByte = 0x%02X\n", buf[0]);
 
-        switch (state) {
-            case START_S:
-                if (buf[0] == FLAG) {
-                    state = FLAG_RCV_S;
-                }
-                break;
-            case FLAG_RCV_S:
-                if ((buf[0] == A_TX && connectionParameters.role == LlRx) 
-                    || (buf[0] == A_RX && connectionParameters.role == LlTx)) {
-                    state = A_RCV_S;
-                }
-              
-                else if (buf[0] == FLAG) break;
-                else state = START_S;
-                break;
-            case A_RCV_S:
-                if ((buf[0] == C_SET && connectionParameters.role == LlRx) 
-                    || (buf[0] == C_UA && connectionParameters.role == LlTx)) {
-                    state = C_RCV_S;
-                    break;
-                }
-                else if (buf[0] == FLAG) {
-                    state = FLAG_RCV_S;
-                    break;
-                }
-                else state = START_S;
-                break;
-            case C_RCV_S:
-                if ((buf[0] == (A_TX ^ C_SET) && connectionParameters.role == LlRx)
-                    || (buf[0] == (A_RX ^ C_UA) && connectionParameters.role == LlTx)) {
-                    state = BCC_OK_S;
-                    break;
-                }
-                else if (buf[0] == FLAG) {
-                    state = FLAG_RCV_S;
-                    break;
-                }
-                else {
-                    state = START_S;
-                    break;
-                }
-            case BCC_OK_S:
-                if (buf[0] == FLAG) {
-                    state = STOP_S;
-                    printf("sucesso!\n");
-                    break;
-                }
-                else {
-                    state = START_S; 
-                    break;
-                }
-            default:
-                break;
-        }
+        if(openStateMachine(state, *buf, connectionParameters) == 0) state = STOP_S;
 
         if(alarmCount >= nTries){
             perror("reached limit of retransmissions\n");
@@ -142,55 +80,60 @@ int llwrite(const unsigned char *buf, int bufSize)
 {
     if (bufSize <= 0) return -1;
     
+    int maxFrameSize = 2*bufSize + 10;
+    int currentSize;
+    int ans = 0;
+    
     alarmEnabled = FALSE;
     alarmCount = 0;
-    Ns = 0;
-
-    int answer = 0;
     
-    while (alarmCount != nTries) {
+    while (alarmCount < nTries) {
+        currentSize = 0;
+        if (alarmEnabled == FALSE || ans == -1) {
+            unsigned char frame[maxFrameSize];
 
-        if (alarmEnabled == FALSE || answer == -1) {
-            unsigned char frame[BUF_SIZE] = {0};
+            frame[currentSize++] = FLAG;
+            frame[currentSize++] = A_TX;
 
-            frame[0] = FLAG;
-            frame[1] = A_TX;
-
-            if (Ns == 0) frame[2] = C_I0; // Information frame number 0
-            else  frame[2] = C_I1;  // Information frame number 1
+            if (iFrame == 0) frame[currentSize++] = C_I0; // Information frame number 0
+            else frame[currentSize++] = C_I1;  // Information frame number 1
             
-            frame[3] = frame[1] ^ frame[2];
+            frame[currentSize++] = frame[1] ^ frame[2];
             
             unsigned char BCC2 = 0;
             
-            for (int i = 4; i < bufSize + 4; i++) {
+            while (currentSize < bufSize + 4) {
                 BCC2 ^= *buf;
-                frame[i] = *buf;
+                frame[currentSize++] = *buf;
                 buf++;
             }
 
-            frame[bufSize + 4] = BCC2;
-
-            for (int i = 4; i < bufSize + 4; i++) {
-                if(frame[i] == FLAG){
-                    frame[i] = ESC;
-                    insert(frame, FLAG_SEQ, i+1);
+            frame[currentSize++] = BCC2;
+            
+            int s = 4;
+            while (s < currentSize) {
+                if (frame[s] == FLAG) {
+                    frame[s] = ESC;
+                    insert(frame, maxFrameSize, FLAG_SEQ, s + 1);
+                    currentSize++;
+                    s++; // Move past the inserted byte to avoid re-checking it.
+                } else if (frame[s] == ESC) {
+                    frame[s] = ESC;
+                    insert(frame, maxFrameSize, ESC_SEQ, s + 1);
+                    currentSize++;
+                    s++; // Move past the inserted byte to avoid re-checking it.
                 }
-                else if (frame[i] == ESC){
-                    insert(frame, ESC_SEQ, i+1);
-                }
+                s++;
             }
 
-            frame[bufSize + 5] = FLAG;
-            
+            frame[currentSize] = FLAG;
             
             alarm(timeout);
             alarmEnabled = TRUE;
         }
 
+        ans = writeStateMachine(&iFrame);
     } 
-
-    
     // TODO
 
     return 0;
