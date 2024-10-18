@@ -1,5 +1,7 @@
 #include "states.h"
 
+extern int iFrame;
+
 int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParameters){
     switch (state) {
         case START_S:
@@ -59,7 +61,7 @@ int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParame
     return -1;
 }
 
-int writeStateMachine(int *iFrame){
+int writeStateMachine(){
     State state = START_S;
     unsigned char buf[6] = {0};
     int ans = 0;
@@ -99,7 +101,7 @@ int writeStateMachine(int *iFrame){
                     state = START_S;
                 break;
             case BCC_OK_S:
-                if (buf[0] == FLAG){
+                if (buf[0] == FLAG) {
                     state = STOP_S;
                     alarm(0);
                     if (ans == C_REJ0 || ans == C_REJ1)
@@ -119,4 +121,82 @@ int writeStateMachine(int *iFrame){
         }
     }
     return -1;
+}
+
+unsigned char readStateMachine(unsigned char *packet){
+    State state = START_S;
+
+    // buf = information being read, that will be destuffed and placed in packet  
+    unsigned char buf[256] = {0}; // NS QUE TAMANHO POR (eu sei :) muito engraçado mas tens um ( e dois ) dava erro de compilação
+    int ans = 0;
+    int deStuff = FALSE;
+    int size = 0;
+
+    while (state != STOP_S) {
+        if(readByteSerialPort(*buf) == -1){
+            perror("error reading the byte");
+            return -1;
+        }
+        if (deStuff) {
+            if (buf[0] == FLAG_SEQ)
+                packet[size] = FLAG;
+            else if (buf[0] == ESC_SEQ)
+                packet[size] = ESC;
+            else
+                continue;
+            size++;
+            deStuff = FALSE;
+        }
+        else{
+            switch (state) {
+                case START_S:
+                    if (buf[0] == FLAG)
+                        state = FLAG_RCV_S;
+                    break;
+                case FLAG_RCV_S:
+                    if (buf[0] == A_TX)
+                        state = A_RCV_S;
+                    else if (buf[0] == FLAG)
+                        state = state;
+                    else
+                        state = START_S;
+                    break;
+                case A_RCV_S:
+                    if (buf[0] == C_I0 || buf[0] == C_I1) {
+                        state = C_RCV_S;
+                        ans = buf[0];
+                    }
+                    else if (buf[0] == FLAG)
+                        state = FLAG_RCV_S;
+                    else
+                        state = START_S;
+                    break;
+                case C_RCV_S:
+                    if (buf[0] == (A_TX ^ ans))
+                        state = BCC_OK_S;
+                    else if (buf[0] == FLAG)
+                        state = FLAG_RCV_S;
+                    else
+                        state = START_S;
+                    break;
+                case BCC_OK_S:
+                    if (buf[0] == FLAG) 
+                        state = STOP_S;             
+                    else if (buf[0] == ESC)
+                        deStuff = TRUE;
+                    else {
+                        packet[size] = buf[0];
+                        size++;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    if (iFrame != ans)
+        return -1;
+
+    return size;
 }

@@ -4,9 +4,6 @@
 #ifndef _LINK_LAYER_H_
 #define _LINK_LAYER_H_
 
-#include <signal.h>
-#include "serial_port.h"
-
 typedef enum
 {
     LlTx,

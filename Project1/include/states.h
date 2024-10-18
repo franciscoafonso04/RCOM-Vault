@@ -8,5 +8,7 @@
 #include "link_layer.h"
 
 int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParameters);
-int writeStateMachine(int Ns);
+int writeStateMachine();
+unsigned char readStateMachine(unsigned char *packet);
+
 #endif // _STATES_H_

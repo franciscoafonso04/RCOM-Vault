@@ -37,9 +37,13 @@ typedef enum
 } State;
 
 int alarmEnabled, alarmCount;
+int iFrame = 0;
 
 void insert(int arr[], int *n, int value, int pos);
+void remove(int arr[], int *n, int pos);
 
 void alarmHandler(int signal);
+
+int writeResponse(int rr, int iFrame);
 
 #endif // _TOOLS_H_

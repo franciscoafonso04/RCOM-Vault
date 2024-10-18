@@ -1,9 +1,11 @@
 // Link layer protocol implementation
 
+#include <signal.h>
+#include "serial_port.h"
 #include "states.h"
 
 extern int alarmEnabled, alarmCount;
-int iFrame = 0;
+extern int iFrame;
 int timeout, nTries;
 
 // MISC
@@ -23,9 +25,7 @@ int llopen(LinkLayer connectionParameters)
 
     int fd = openSerialPort(connectionParameters.serialPort, connectionParameters.baudRate);
     if (fd < 0) // && alarmCount == 0)
-    {
         return -1;
-    }
 
     State state = START_S;
 
@@ -132,11 +132,10 @@ int llwrite(const unsigned char *buf, int bufSize)
             alarmEnabled = TRUE;
         }
 
-        ans = writeStateMachine(&iFrame);
+        ans = writeStateMachine();
     } 
-    // TODO
 
-    return 0;
+    return 0; // return written characters?
 }
 
 ////////////////////////////////////////////////
@@ -144,9 +143,40 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    // TODO
+    int size = readStateMachine(*packet);
 
-    return 0;
+    if (size == 0){
+        printf("Didn't read anything, hoping to read now.\n");
+
+        writeResponse(TRUE, iFrame);
+
+        return -1;
+    }
+
+    size -= 1; //don't want to read BCC2
+    unsigned char BCC2 = 0;
+    for (int i = 0; i < size; i++)
+        BCC2 ^= packet[i];
+    
+    if (BCC2 == packet[size]) {
+
+        writeResponse(TRUE, iFrame);
+
+        if (iFrame == 0)
+            iFrame = 1;
+        else if (iFrame == 1)
+            iFrame = 0;
+
+        return size;
+    }
+    else {
+        printf("Rejected\n");
+
+        writeResponse(FALSE, iFrame);
+
+        return -1;
+    }
+    
 }
 
 ////////////////////////////////////////////////
