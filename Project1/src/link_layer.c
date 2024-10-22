@@ -184,7 +184,70 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
+    const char role;   // n sei como é q vamos saber a role mas tudo bem, a app layer recebe um atributo role ent chamei lhe isto para ja
     // TODO
+    unsigned char buf[6] = {0};
+
+    if (role == LlTx) {
+        alarmEnabled = FALSE;
+        alarmCount = 0;
+
+        while (alarmCount < nTries) {
+            if (alarmEnabled == FALSE)
+            {
+                //write_s_u_d(fd, CONTROL_DISC);
+                buf[0] = FLAG;
+                buf[1] = A_TX;
+                buf[2] = C_DISC;
+                buf[3] = buf[1] ^ buf[2];
+                buf[4] = FLAG;
+
+                int bytes = writeBytesSerialPort(*buf, 5);
+
+                printf("%d bytes written\n", bytes);
+
+                alarmEnabled = TRUE;
+
+                alarm(timeout);
+            }
+
+            // Wait for a DISC frame to send a UA frame
+            if (!discStateMachine())
+            {
+                buf[0] = FLAG;
+                buf[1] = A_TX;
+                buf[2] = C_UA;
+                buf[3] = buf[1] ^ buf[2];
+                buf[4] = FLAG;
+
+                int bytes = writeBytesSerialPort(*buf, 5);                
+                break;
+            }
+        }
+
+        if (alarmCount >= nTries)
+        {
+            printf("Timed exeded!\n");
+            return 1;
+        }
+    }
+
+    else {
+
+        while(discStateMachine());
+        do {
+            buf[0] = FLAG;
+            buf[1] = A_TX;
+            buf[2] = C_DISC;
+            buf[3] = buf[1] ^ buf[2];
+            buf[4] = FLAG;
+
+            int bytes = writeBytesSerialPort(*buf, 5);
+
+            printf("%d bytes written\n", bytes);
+        } while (uaStateMachine());
+    }
+    
 
     int clstat = closeSerialPort();
     return clstat;
