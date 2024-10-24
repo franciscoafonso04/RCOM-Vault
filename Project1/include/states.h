@@ -7,7 +7,7 @@
 #include "tools.h"
 #include "link_layer.h"
 
-int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParameters);
+int openStateMachine(State state, unsigned char *buf, LinkLayerRole role);
 int writeStateMachine();
 unsigned char readStateMachine(unsigned char *packet);
 unsigned char discStateMachine();

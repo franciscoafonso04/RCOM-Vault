@@ -2,7 +2,7 @@
 
 extern int iFrame;
 
-int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParameters){
+int openStateMachine(State state, unsigned char *buf, LinkLayerRole role){
     switch (state) {
         case START_S:
             if (buf[0] == FLAG) {
@@ -10,8 +10,8 @@ int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParame
             }
             break;
         case FLAG_RCV_S:
-            if ((buf[0] == A_TX && connectionParameters.role == LlRx) 
-                || (buf[0] == A_RX && connectionParameters.role == LlTx)) {
+            if ((buf[0] == A_TX && role == LlRx) 
+                || (buf[0] == A_RX && role == LlTx)) {
                 state = A_RCV_S;
             }
             
@@ -19,8 +19,8 @@ int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParame
             else state = START_S;
             break;
         case A_RCV_S:
-            if ((buf[0] == C_SET && connectionParameters.role == LlRx) 
-                || (buf[0] == C_UA && connectionParameters.role == LlTx)) {
+            if ((buf[0] == C_SET && role == LlRx) 
+                || (buf[0] == C_UA && role == LlTx)) {
                 state = C_RCV_S;
                 break;
             }
@@ -31,8 +31,8 @@ int openStateMachine(State state, unsigned char *buf, LinkLayer connectionParame
             else state = START_S;
             break;
         case C_RCV_S:
-            if ((buf[0] == (A_TX ^ C_SET) && connectionParameters.role == LlRx)
-                || (buf[0] == (A_RX ^ C_UA) && connectionParameters.role == LlTx)) {
+            if ((buf[0] == (A_TX ^ C_SET) && role == LlRx)
+                || (buf[0] == (A_RX ^ C_UA) && role == LlTx)) {
                 state = BCC_OK_S;
                 break;
             }

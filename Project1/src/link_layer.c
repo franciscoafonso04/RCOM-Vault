@@ -7,6 +7,7 @@
 extern int alarmEnabled, alarmCount;
 extern int iFrame;
 int timeout, nTries;
+LinkLayerRole role;
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
@@ -18,8 +19,11 @@ int llopen(LinkLayer connectionParameters)
 {
     alarmEnabled = FALSE;
     alarmCount = 0;
+
     timeout = connectionParameters.timeout;
     nTries = connectionParameters.nRetransmissions;
+    role = connectionParameters.role;
+
     (void)signal(SIGALRM, alarmHandler);
     unsigned char buf[6] = {0};
 
@@ -31,7 +35,7 @@ int llopen(LinkLayer connectionParameters)
 
     while (state != STOP_S) {
 
-        if (alarmEnabled == FALSE && connectionParameters.role == LlTx)
+        if (alarmEnabled == FALSE && role == LlTx)
         {
             buf[0] = FLAG;
             buf[1] = A_TX;
@@ -51,7 +55,7 @@ int llopen(LinkLayer connectionParameters)
         if (!byte) continue;
         printf("receivedByte = 0x%02X\n", buf[0]);
 
-        if(openStateMachine(state, *buf, connectionParameters) == 0) state = STOP_S;
+        if(openStateMachine(state, *buf, role) == 0) state = STOP_S;
 
         if(alarmCount >= nTries){
             perror("reached limit of retransmissions\n");
@@ -59,7 +63,7 @@ int llopen(LinkLayer connectionParameters)
         }
     }
 
-    if(connectionParameters.role == LlRx) {
+    if(role == LlRx) {
         buf[0] = FLAG;
         buf[1] = A_RX;
         buf[2] = C_UA;
@@ -182,10 +186,9 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 // LLCLOSE
 ////////////////////////////////////////////////
+
 int llclose(int showStatistics)
 {
-    const char role;   // n sei como é q vamos saber a role mas tudo bem, a app layer recebe um atributo role ent chamei lhe isto para ja
-    // TODO
     unsigned char buf[6] = {0};
 
     if (role == LlTx) {
@@ -195,7 +198,6 @@ int llclose(int showStatistics)
         while (alarmCount < nTries) {
             if (alarmEnabled == FALSE)
             {
-                //write_s_u_d(fd, CONTROL_DISC);
                 buf[0] = FLAG;
                 buf[1] = A_TX;
                 buf[2] = C_DISC;
@@ -248,7 +250,33 @@ int llclose(int showStatistics)
         } while (uaStateMachine());
     }
     
-
     int clstat = closeSerialPort();
+
+    if (showStatistics)
+    {
+        printf("\n\n\nStatistics:\n");
+
+        if (role == LlTx)
+            printf("User: Transmiter \n");
+        else
+            printf("User: Receiver \n");
+
+        printf("File size: %ld\n");
+
+        if (role == LlTx)
+        {
+            printf("Frames sent: %d\n");
+            printf("Total number of alarms: %d\n");
+        }
+        else
+        {
+            printf("Frames read: %d\n");
+            printf("Number of rejection/ repeted information %d\n");
+        }
+
+        printf("Time spent: %g seconds\n");
+        printf("Total time: %g seconds\n");
+    }
+    
     return clstat;
 }
