@@ -211,52 +211,44 @@ unsigned char discStateMachine() {
         // Returns after 5 chars have been input
         readByteSerialPort(*buf);
         switch (state) {
-        case START_S:
-            if (buf[0] == FLAG)
-                state = FLAG_RCV_S;
-            break;
-        case FLAG_RCV_S:
-
-            if (buf[0] == A_TX)
-                state = A_RCV_S;
-            else if (buf[0] == FLAG)
+            case START_S:
+                if (buf[0] == FLAG)
+                    state = FLAG_RCV_S;
                 break;
-            else
-                state = START_S;
-            break;
-
-        case A_RCV_S:
-            if (buf[0] == (C_DISC))
-                state = C_RCV_S;
-            else if (buf[0] == FLAG)
-                state = FLAG_RCV_S;
-            else
-                state = START_S;
-
-            break;
-        case C_RCV_S:
-
-            if (buf[0] == (A_TX ^ C_DISC))
-                state = BCC_OK_S;
-            else if (buf[0] == FLAG)
-                state = FLAG_RCV_S;
-            else
-                state = START_S;
-            break;
-        case BCC_OK_S:
-
-            if (buf[0] == FLAG)
-            {
-                alarm(0);
-                return 0;
-            }
-            else
-            {
-                state = START_S;
-            }
-            break;
-        default:
-            break;
+            case FLAG_RCV_S:
+                if (buf[0] == A_TX)
+                    state = A_RCV_S;
+                else if (buf[0] == FLAG)
+                    break;
+                else
+                    state = START_S;
+                break;
+            case A_RCV_S:
+                if (buf[0] == C_DISC)
+                    state = C_RCV_S;
+                else if (buf[0] == FLAG)
+                    state = FLAG_RCV_S;
+                else
+                    state = START_S;
+                break;
+            case C_RCV_S:
+                if (buf[0] == (A_TX ^ C_DISC))
+                    state = BCC_OK_S;
+                else if (buf[0] == FLAG)
+                    state = FLAG_RCV_S;
+                else
+                    state = START_S;
+                break;
+            case BCC_OK_S:
+                if (buf[0] == FLAG){
+                    alarm(0);
+                    return 0;
+                }
+                else
+                    state = START_S;
+                break;
+            default:
+                break;
         }
     }
     return 1;
@@ -271,51 +263,42 @@ unsigned char uaStateMachine() {
         // Returns after 5 chars have been input
         readByteSerialPort(*buf);
         switch (state) {
-        case START_S:
-            if (buf[0] == FLAG)
-                state = FLAG_RCV_S;
-            break;
-        case FLAG_RCV_S:
-
-            if (buf[0] == A_TX)
-                state = A_RCV_S;
-            else if (buf[0] == FLAG)
+            case START_S:
+                if (buf[0] == FLAG)
+                    state = FLAG_RCV_S;
                 break;
-            else
-                state = START_S;
-            break;
-
-        case A_RCV_S:
-            if (buf[0] == (C_UA))
-                state = C_RCV_S;
-            else if (buf[0] == FLAG)
-                state = FLAG_RCV_S;
-            else
-                state = START_S;
-
-            break;
-        case C_RCV_S:
-
-            if (buf[0] == (A_TX ^ C_DISC))
-                state = BCC_OK_S;
-            else if (buf[0] == FLAG)
-                state = FLAG_RCV_S;
-            else
-                state = START_S;
-            break;
-        case BCC_OK_S:
-
-            if (buf[0] == FLAG)
-            {
-                return 0;
-            }
-            else
-            {
-                state = START_S;
-            }
-            break;
-        default:
-            break;
+            case FLAG_RCV_S:
+                if (buf[0] == A_TX)
+                    state = A_RCV_S;
+                else if (buf[0] == FLAG)
+                    break;
+                else
+                    state = START_S;
+                break;
+            case A_RCV_S:
+                if (buf[0] == (C_UA))
+                    state = C_RCV_S;
+                else if (buf[0] == FLAG)
+                    state = FLAG_RCV_S;
+                else
+                    state = START_S;
+                break;
+            case C_RCV_S:
+                if (buf[0] == (A_TX ^ C_DISC))
+                    state = BCC_OK_S;
+                else if (buf[0] == FLAG)
+                    state = FLAG_RCV_S;
+                else
+                    state = START_S;
+                break;
+            case BCC_OK_S:
+                if (buf[0] == FLAG)
+                    return 0;
+                else
+                    state = START_S;
+                break;
+            default:
+                break;
         }
     }
     return 1;

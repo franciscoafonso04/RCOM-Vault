@@ -4,6 +4,7 @@
 #define _TOOLS_H_
 
 #include <stdio.h>
+#include <time.h>
 
 #define FLAG 0x7E
 
@@ -33,7 +34,6 @@ typedef enum
     C_RCV_S,
     BCC_OK_S,
     STOP_S
-
 } State;
 
 int alarmEnabled, alarmCount;

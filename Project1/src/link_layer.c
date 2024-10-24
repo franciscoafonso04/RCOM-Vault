@@ -229,14 +229,15 @@ int llclose(int showStatistics)
 
         if (alarmCount >= nTries)
         {
-            printf("Timed exeded!\n");
+            printf("Time exceeded!\n");
             return 1;
         }
     }
 
-    else {
+    else { // role == LlRx
 
         while(discStateMachine());
+        
         do {
             buf[0] = FLAG;
             buf[1] = A_TX;
