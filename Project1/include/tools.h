@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include "link_layer.h"
 
 #define FLAG 0x7E
 
@@ -26,6 +27,13 @@
 #define FLAG_SEQ 0x5E
 #define ESC_SEQ 0x5D
 
+#define T_SIZE 0x00
+#define T_NAME 0x01
+
+#define P_START 0x01
+#define P_DATA 0x02
+#define P_END 0x03
+
 typedef enum
 {
     START_S = 0,
@@ -38,6 +46,7 @@ typedef enum
 
 int alarmEnabled, alarmCount;
 int iFrame = 0;
+long fileSize = 0;
 
 void insert(int arr[], int *n, int value, int pos);
 void remove(int arr[], int *n, int pos);
@@ -45,5 +54,11 @@ void remove(int arr[], int *n, int pos);
 void alarmHandler(int signal);
 
 int writeResponse(int rr, int iFrame);
+
+unsigned char* writeControl(long fileSize, const char* fileName, int* packetSize, int type);
+
+unsigned char* writeData(unsigned char* data, int dataSize, int seqNum, int* packetSize);
+
+long power(int x, int y);
 
 #endif // _TOOLS_H_

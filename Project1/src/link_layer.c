@@ -8,6 +8,7 @@ extern int alarmEnabled, alarmCount;
 extern int iFrame;
 int timeout, nTries;
 LinkLayerRole role;
+extern long fileSize;
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
