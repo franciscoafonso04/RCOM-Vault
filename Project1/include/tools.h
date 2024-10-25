@@ -3,9 +3,16 @@
 #ifndef _TOOLS_H_
 #define _TOOLS_H_
 
+#include "link_layer.h"
+#include "serial_port.h"
+
 #include <stdio.h>
 #include <time.h>
-#include "link_layer.h"
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <time.h>
 
 #define FLAG 0x7E
 
@@ -44,12 +51,14 @@ typedef enum
     STOP_S
 } State;
 
-int alarmEnabled, alarmCount;
-int iFrame = 0;
-long fileSize = 0;
+extern int alarmEnabled;
+extern int alarmCount;
+extern int iFrame;
+extern long fileSize;
+extern time_t delta;
 
-void insert(int arr[], int *n, int value, int pos);
-void remove(int arr[], int *n, int pos);
+void arrayInsert(unsigned char arr[], int *n, int value, int pos);
+void arrayRemove(int arr[], int *n, int pos);
 
 void alarmHandler(int signal);
 

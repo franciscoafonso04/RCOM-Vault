@@ -3,7 +3,6 @@
 #ifndef _STATES_H_
 #define _STATES_H_
 
-#include <stdio.h>
 #include "tools.h"
 
 int openStateMachine(State state, unsigned char *buf, LinkLayerRole role);

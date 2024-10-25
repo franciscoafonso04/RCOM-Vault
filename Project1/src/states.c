@@ -67,7 +67,7 @@ int writeStateMachine(){
     int ans = 0;
 
     while (state != STOP_S && alarmEnabled) {
-        readByteSerialPort(*buf);
+        readByteSerialPort(buf);
 
         switch (state) {
             case START_S:
@@ -133,7 +133,7 @@ unsigned char readStateMachine(unsigned char *packet){
     int size = 0;
 
     while (state != STOP_S) {
-        if(readByteSerialPort(*buf) == -1){
+        if(readByteSerialPort(buf) == -1){
             perror("error reading the byte");
             return -1;
         }
@@ -209,7 +209,7 @@ unsigned char discStateMachine() {
     while (state != STOP_S)
     {
         // Returns after 5 chars have been input
-        readByteSerialPort(*buf);
+        readByteSerialPort(buf);
         switch (state) {
             case START_S:
                 if (buf[0] == FLAG)
@@ -261,7 +261,7 @@ unsigned char uaStateMachine() {
     while (state != STOP_S)
     {
         // Returns after 5 chars have been input
-        readByteSerialPort(*buf);
+        readByteSerialPort(buf);
         switch (state) {
             case START_S:
                 if (buf[0] == FLAG)

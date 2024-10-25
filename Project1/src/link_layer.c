@@ -1,7 +1,5 @@
 // Link layer protocol implementation
 
-#include <signal.h>
-#include "serial_port.h"
 #include "states.h"
 
 extern int alarmEnabled, alarmCount;
@@ -9,6 +7,7 @@ extern int iFrame;
 int timeout, nTries;
 LinkLayerRole role;
 extern long fileSize;
+extern time_t delta;
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
@@ -44,7 +43,7 @@ int llopen(LinkLayer connectionParameters)
             buf[3] = buf[1] ^ buf[2];
             buf[4] = FLAG;
 
-            int bytes = writeBytesSerialPort(*buf, 5);
+            int bytes = writeBytesSerialPort(buf, 5);
 
             printf("%d bytes written\n", bytes);
 
@@ -52,11 +51,11 @@ int llopen(LinkLayer connectionParameters)
             alarmEnabled = TRUE;
         }
 
-        int byte = readByteSerialPort(*buf);
+        int byte = readByteSerialPort(buf);
         if (!byte) continue;
         printf("receivedByte = 0x%02X\n", buf[0]);
 
-        if(openStateMachine(state, *buf, role) == 0) state = STOP_S;
+        if(openStateMachine(state, buf, role) == 0) state = STOP_S;
 
         if(alarmCount >= nTries){
             perror("reached limit of retransmissions\n");
@@ -71,7 +70,7 @@ int llopen(LinkLayer connectionParameters)
         buf[3] = buf[1] ^ buf[2];
         buf[4] = FLAG;
     
-        int bytes = writeBytesSerialPort(*buf, BUF_SIZE);
+        int bytes = writeBytesSerialPort(buf, BUF_SIZE);
         printf("%d bytes written\n", bytes);
     } 
 
@@ -119,12 +118,12 @@ int llwrite(const unsigned char *buf, int bufSize)
             while (s < currentSize) {
                 if (frame[s] == FLAG) {
                     frame[s] = ESC;
-                    insert(frame, maxFrameSize, FLAG_SEQ, s + 1);
+                    arrayInsert(frame, &maxFrameSize, FLAG_SEQ, s + 1);
                     currentSize++;
                     s++; // Move past the inserted byte to avoid re-checking it.
                 } else if (frame[s] == ESC) {
                     frame[s] = ESC;
-                    insert(frame, maxFrameSize, ESC_SEQ, s + 1);
+                    arrayInsert(frame, &maxFrameSize, ESC_SEQ, s + 1);
                     currentSize++;
                     s++; // Move past the inserted byte to avoid re-checking it.
                 }
@@ -148,7 +147,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    int size = readStateMachine(*packet);
+    int size = readStateMachine(packet);
 
     if (size == 0){
         printf("Didn't read anything, hoping to read now.\n");
@@ -205,7 +204,7 @@ int llclose(int showStatistics)
                 buf[3] = buf[1] ^ buf[2];
                 buf[4] = FLAG;
 
-                int bytes = writeBytesSerialPort(*buf, 5);
+                int bytes = writeBytesSerialPort(buf, 5);
 
                 printf("%d bytes written\n", bytes);
 
@@ -223,7 +222,9 @@ int llclose(int showStatistics)
                 buf[3] = buf[1] ^ buf[2];
                 buf[4] = FLAG;
 
-                int bytes = writeBytesSerialPort(*buf, 5);                
+                int bytes = writeBytesSerialPort(buf, 5);
+
+                printf("%d bytes written\n", bytes);              
                 break;
             }
         }
@@ -246,7 +247,7 @@ int llclose(int showStatistics)
             buf[3] = buf[1] ^ buf[2];
             buf[4] = FLAG;
 
-            int bytes = writeBytesSerialPort(*buf, 5);
+            int bytes = writeBytesSerialPort(buf, 5);
 
             printf("%d bytes written\n", bytes);
         } while (uaStateMachine());
@@ -263,21 +264,19 @@ int llclose(int showStatistics)
         else
             printf("User: Receiver \n");
 
-        printf("File size: %ld\n");
+        printf("File size: %ld\n", fileSize);
 
-        if (role == LlTx)
-        {
-            printf("Frames sent: %d\n");
-            printf("Total number of alarms: %d\n");
+        if (role == LlTx) {
+            printf("Frames sent: %d\n", 3);
+            printf("Total number of alarms: %d\n", 3);
         }
-        else
-        {
-            printf("Frames read: %d\n");
-            printf("Number of rejection/ repeted information %d\n");
+        else {  // ESTES 3 SÃO PORQUE NÃO TENHO VALORES PARA COLOCAR ENTRETANTO
+            printf("Frames read: %d\n", 3);
+            printf("Number of rejection/ repeted information %d\n", 3);
         }
 
-        printf("Time spent: %g seconds\n");
-        printf("Total time: %g seconds\n");
+        printf("Time spent: %g seconds\n", 3.2);
+        printf("Total time: %ld seconds\n", delta);
     }
     
     return clstat;

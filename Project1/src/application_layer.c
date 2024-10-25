@@ -1,19 +1,15 @@
 // Application layer protocol implementation
 
 #include "application_layer.h"
-#include "link_layer.h"
 #include "tools.h"
 
-#include <stdio.h>
-#include <time.h>
-
 extern long fileSize;
+extern time_t delta;
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
     time_t start = time(NULL);
-    time_t delta;
     LinkLayer connect;
 
     connect.baudRate = baudRate;

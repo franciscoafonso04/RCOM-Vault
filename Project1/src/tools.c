@@ -1,8 +1,14 @@
 #include "tools.h"
 
+int alarmEnabled = 0;
+int alarmCount = 0;
+int iFrame = 0;
+long fileSize = 0;
+time_t delta = 0;
+
 extern int alarmEnabled, alarmCount;
 
-void insert(int arr[], int *n, int value, int pos) {
+void arrayInsert(unsigned char arr[], int *n, int value, int pos) {
     
     if (pos < 0 || pos >= *n) {
         printf("Invalid position!\n");
@@ -18,14 +24,7 @@ void insert(int arr[], int *n, int value, int pos) {
     (*n)++;
 }
 
-void alarmHandler(int signal) {
-    alarmEnabled = 0;
-    alarmCount++;
-
-    printf("Alarm #%d\n", alarmCount);
-}
-
-void remove(int arr[], int *n, int pos) {
+void arrayRemove(int arr[], int *n, int pos) {
     
     if (pos < 0 || pos >= *n) {
         printf("Invalid position!\n");
@@ -37,6 +36,13 @@ void remove(int arr[], int *n, int pos) {
     }
 
     (*n)--;
+}
+
+void alarmHandler(int signal) {
+    alarmEnabled = 0;
+    alarmCount++;
+
+    printf("Alarm #%d\n", alarmCount);
 }
 
 int writeResponse(int rr, int iFrame){
@@ -66,7 +72,7 @@ int writeResponse(int rr, int iFrame){
     buf[3] = buf[1] ^ buf[2];
     buf[4] = FLAG;
 
-    return writeBytesSerialPort(*buf, 6);
+    return writeBytesSerialPort(buf, 6);
 }
 
 unsigned char* writeControl(long fileSize, const char* fileName, int* packetSize, int type){
