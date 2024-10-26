@@ -53,7 +53,7 @@ int llopen(LinkLayer connectionParameters)
 
         int byte = readByteSerialPort(buf);
         if (byte == 0) continue;
-        printf("receivedByte = 0x%02X\n", buf[0]);
+        //printf("receivedByte = 0x%02X\n", buf[0]);
 
         openStateMachine(&state, buf, role);
 
@@ -87,13 +87,14 @@ int llwrite(const unsigned char *buf, int bufSize)
     int maxFrameSize = 2*bufSize + 10;
     int currentSize;
     int ans = 0;
+    int size = 0;
     
     alarmEnabled = FALSE;
     alarmCount = 0;
     
     while (alarmCount < nTries) {
         currentSize = 0;
-        if (alarmEnabled == FALSE || ans == -1) {
+        if (alarmEnabled == FALSE || ans < 0) {
             unsigned char frame[maxFrameSize];
 
             frame[currentSize++] = FLAG;
@@ -114,32 +115,37 @@ int llwrite(const unsigned char *buf, int bufSize)
 
             frame[currentSize++] = BCC2;
             
-            int s = 4;
-            while (s < currentSize) {
-                if (frame[s] == FLAG) {
-                    frame[s] = ESC;
-                    arrayInsert(frame, &maxFrameSize, FLAG_SEQ, s + 1);
+            size = 4;
+            while (size < currentSize) {
+                if (frame[size] == FLAG) {
+                    frame[size] = ESC;
+                    arrayInsert(frame, &maxFrameSize, FLAG_SEQ, size + 1);
                     currentSize++;
-                    s++; // Move past the inserted byte to avoid re-checking it.
-                } else if (frame[s] == ESC) {
-                    frame[s] = ESC;
-                    arrayInsert(frame, &maxFrameSize, ESC_SEQ, s + 1);
+                    size++; // Move past the inserted byte to avoid re-checking it.
+                } else if (frame[size] == ESC) {
+                    frame[size] = ESC;
+                    arrayInsert(frame, &maxFrameSize, ESC_SEQ, size + 1);
                     currentSize++;
-                    s++; // Move past the inserted byte to avoid re-checking it.
+                    size++; // Move past the inserted byte to avoid re-checking it.
                 }
-                s++;
+                size++;
             }
 
             frame[currentSize] = FLAG;
+
+            int bytes = writeBytesSerialPort(frame, currentSize);
+            printf("%d bytes written\n", bytes);
             
             alarm(timeout);
             alarmEnabled = TRUE;
         }
 
         ans = writeStateMachine();
+        printf("ans: %d\n", ans);
+        if(ans == 0) return size;
     } 
 
-    return 0; // return written characters?
+    return size; // acho que isto são as written characters
 }
 
 ////////////////////////////////////////////////
@@ -151,29 +157,23 @@ int llread(unsigned char *packet)
 
     if (size == 0){
         printf("Didn't read anything, hoping to read now.\n");
-
         writeResponse(TRUE, iFrame);
-
         return -1;
     }
 
-    size -= 1; //don't want to read BCC2
+    size -= 1; // don't want to read BCC2
     unsigned char BCC2 = 0;
     for (int i = 0; i < size; i++)
         BCC2 ^= packet[i];
     
     if (BCC2 == packet[size]) {
-
+        printf("sending a RR\n");
         writeResponse(TRUE, iFrame);
 
-        if (iFrame == 0)
-            iFrame = 1;
-        else if (iFrame == 1)
-            iFrame = 0;
+        iFrame = !iFrame; // switch between 1 and 0
 
         return size;
-    }
-    else {
+    } else {
         printf("Rejected\n");
 
         writeResponse(FALSE, iFrame);

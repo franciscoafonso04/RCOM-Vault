@@ -1,6 +1,7 @@
 #include "states.h"
 
 extern int iFrame;
+extern int alarmEnabled;
 
 int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role){
     switch (*state) {
@@ -67,7 +68,9 @@ int writeStateMachine(){
     int ans = 0;
 
     while (state != STOP_S && alarmEnabled) {
-        readByteSerialPort(buf);
+        int byte = readByteSerialPort(buf);
+        if (byte == 0) continue;
+        //printf("receivedByte = 0x%02X\n", buf[0]);
 
         switch (state) {
             case START_S:
@@ -105,9 +108,9 @@ int writeStateMachine(){
                     state = STOP_S;
                     alarm(0);
                     if (ans == C_REJ0 || ans == C_REJ1)
-                        return -1;
+                        return -2;
                     if ((ans == C_RR0 && iFrame == 0) || (ans == C_RR1 && iFrame == 1)) 
-                        return -1;
+                        return -3;
                     if (ans == C_RR0) 
                         iFrame = 0;
                     if (ans == C_RR1) 
@@ -133,10 +136,10 @@ unsigned char readStateMachine(unsigned char *packet){
     int size = 0;
 
     while (state != STOP_S) {
-        if(readByteSerialPort(buf) == -1){
-            perror("error reading the byte");
-            return -1;
-        }
+
+        int byte = readByteSerialPort(buf);
+        if (byte == 0) continue;
+
         if (deStuff) {
             if (buf[0] == FLAG_SEQ)
                 packet[size] = FLAG;
@@ -146,8 +149,7 @@ unsigned char readStateMachine(unsigned char *packet){
                 continue;
             size++;
             deStuff = FALSE;
-        }
-        else{
+        } else {
             switch (state) {
                 case START_S:
                     if (buf[0] == FLAG)

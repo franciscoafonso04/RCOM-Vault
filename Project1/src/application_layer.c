@@ -50,8 +50,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         int packetSize = 0;
         unsigned char* startPacket = writeControl(fileSize, filename, &packetSize, P_START);
 
-        if (llwrite(startPacket, packetSize)){
-            printf("Time exceeded\n");
+        if (llwrite(startPacket, packetSize) == -1){
+            printf("Time exceeded in startPacket\n");
             return;
         }
         free(startPacket);
@@ -74,7 +74,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             packetSize = 0;
             unsigned char* dataPacket = writeData(buffer, bytesRead, seqNum++, &packetSize);
             if (llwrite(dataPacket, packetSize)){
-                printf("Time exceeded\n");
+                printf("Time exceeded in dataPacket\n");
                 return;
             }
             free(dataPacket);
@@ -84,7 +84,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         unsigned char* endPacket = writeControl(fileSize, filename, &packetSize, P_END);
 
         if (llwrite(endPacket, packetSize)){
-            printf("Time exceeded\n");
+            printf("Time exceeded in endPacket\n");
             return;
         }
         free(endPacket);
@@ -94,11 +94,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fclose(file);
 
     } else if (connect.role == LlRx) {
-
         long readBytes = 0;
-        unsigned char packet[MAX_PAYLOAD_SIZE + 5];
         int pos = 0;
-
+        unsigned char packet[MAX_PAYLOAD_SIZE + 5];
+        
         while (packet[0] != P_START)
             llread(packet);
 
@@ -109,6 +108,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 readBytes += power(256, i - 1) * (int)packet[3 + pos++];
             
             fileSize = readBytes;
+            printf("fileSize: %ld\n", fileSize);
         }
         else {
             printf("Error in the start control packet\n");
@@ -116,6 +116,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
 
         // NÃO ESTOU A LER A PARTE DO NOME DO FICHEIRO PORQUE JÁ É PASSADO COMO ARGUMENTO
+        // PODE VIR A REVELAR-SE UM ERRO
 
         FILE *file = fopen(filename, "wb");
         if (file == NULL) {
@@ -144,8 +145,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
 
         // Check if all the bytes were read and written
-        if (readBytes > (long)0)
-        {
+        if (readBytes > (long)0) {
             printf("Error: Data was lost! %ld bytes were lost\n", readBytes);
             exit(1);
         }

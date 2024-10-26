@@ -50,30 +50,32 @@ int writeResponse(int rr, int iFrame){
     buf[0] = FLAG;
     buf[1] = A_RX;
 
-    if (rr == 1){ // TRUE
-        if (iFrame == 0){
-            buf[2] = C_RR0;
-        }    
-        else if (iFrame == 1){
+    if (rr == TRUE){
+        if (iFrame == 0)
             buf[2] = C_RR1;
-        }
+        else if (iFrame == 1)
+            buf[2] = C_RR0;
     }
-    else if (rr == 0){ // FALSE
-        if (iFrame == 0){
+    else if (rr == FALSE){
+        if (iFrame == 0)
             buf[2] = C_REJ0;
-        }    
-        else if (iFrame == 1){
+        else if (iFrame == 1)
             buf[2] = C_REJ1;
-        }
     }
 
     buf[3] = buf[1] ^ buf[2];
     buf[4] = FLAG;
 
+    printf("buf: ");
+    for (int i = 0; i < 5; i++) {
+        printf("%02X ", buf[i]);
+    }
+    printf("\n");
+
     return writeBytesSerialPort(buf, 6);
 }
 
-unsigned char* writeControl(long fileSize, const char* fileName, int* packetSize, int type){
+unsigned char* writeControl(long fileSize, const char *fileName, int *packetSize, int type){
     unsigned char l_size = 0;
     unsigned char l_name = strlen(fileName);
     long aux = fileSize; 
