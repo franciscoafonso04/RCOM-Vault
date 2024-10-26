@@ -23,7 +23,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     strcpy(connect.serialPort, serialPort);
     connect.timeout = timeout;
 
-    if (llopen(connect)) {
+    if (llopen(connect) == -1) {
         printf("Failed to connect\n");
         return;
     }

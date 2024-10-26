@@ -6,8 +6,6 @@ int iFrame = 0;
 long fileSize = 0;
 time_t delta = 0;
 
-extern int alarmEnabled, alarmCount;
-
 void arrayInsert(unsigned char arr[], int *n, int value, int pos) {
     
     if (pos < 0 || pos >= *n) {

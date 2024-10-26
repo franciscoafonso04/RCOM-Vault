@@ -52,10 +52,10 @@ int llopen(LinkLayer connectionParameters)
         }
 
         int byte = readByteSerialPort(buf);
-        if (!byte) continue;
+        if (byte == 0) continue;
         printf("receivedByte = 0x%02X\n", buf[0]);
 
-        if(openStateMachine(state, buf, role) == 0) state = STOP_S;
+        openStateMachine(&state, buf, role);
 
         if(alarmCount >= nTries){
             perror("reached limit of retransmissions\n");

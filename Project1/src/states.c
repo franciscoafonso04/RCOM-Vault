@@ -2,56 +2,56 @@
 
 extern int iFrame;
 
-int openStateMachine(State state, unsigned char *buf, LinkLayerRole role){
-    switch (state) {
+int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role){
+    switch (*state) {
         case START_S:
             if (buf[0] == FLAG) {
-                state = FLAG_RCV_S;
+                *state = FLAG_RCV_S;
             }
             break;
         case FLAG_RCV_S:
             if ((buf[0] == A_TX && role == LlRx) 
                 || (buf[0] == A_RX && role == LlTx)) {
-                state = A_RCV_S;
+                *state = A_RCV_S;
             }
             
             else if (buf[0] == FLAG) break;
-            else state = START_S;
+            else *state = START_S;
             break;
         case A_RCV_S:
             if ((buf[0] == C_SET && role == LlRx) 
                 || (buf[0] == C_UA && role == LlTx)) {
-                state = C_RCV_S;
+                *state = C_RCV_S;
                 break;
             }
             else if (buf[0] == FLAG) {
-                state = FLAG_RCV_S;
+                *state = FLAG_RCV_S;
                 break;
             }
-            else state = START_S;
+            else *state = START_S;
             break;
         case C_RCV_S:
             if ((buf[0] == (A_TX ^ C_SET) && role == LlRx)
                 || (buf[0] == (A_RX ^ C_UA) && role == LlTx)) {
-                state = BCC_OK_S;
+                *state = BCC_OK_S;
                 break;
             }
             else if (buf[0] == FLAG) {
-                state = FLAG_RCV_S;
+                *state = FLAG_RCV_S;
                 break;
             }
             else {
-                state = START_S;
+                *state = START_S;
                 break;
             }
         case BCC_OK_S:
             if (buf[0] == FLAG) {
-                state = STOP_S;
+                *state = STOP_S;
                 printf("sucesso!\n");
                 return 0;
             }
             else {
-                state = START_S; 
+                *state = START_S; 
                 break;
             }
         default:

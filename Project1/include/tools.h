@@ -41,8 +41,7 @@
 #define P_DATA 0x02
 #define P_END 0x03
 
-typedef enum
-{
+typedef enum {
     START_S = 0,
     FLAG_RCV_S,
     A_RCV_S,
@@ -58,7 +57,7 @@ extern long fileSize;
 extern time_t delta;
 
 void arrayInsert(unsigned char arr[], int *n, int value, int pos);
-void arrayRemove(int arr[], int *n, int pos);
+void arrayRemove(int arr[], int *n, int pos); // podemos remover esta aqui
 
 void alarmHandler(int signal);
 
