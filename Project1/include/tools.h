@@ -57,7 +57,6 @@ extern long fileSize;
 extern time_t delta;
 
 void arrayInsert(unsigned char arr[], int *n, int value, int pos);
-void arrayRemove(int arr[], int *n, int pos); // podemos remover esta aqui
 
 void alarmHandler(int signal);
 
@@ -65,7 +64,7 @@ int writeResponse(int rr, int iFrame);
 
 unsigned char* writeControl(long fileSize, const char* fileName, int* packetSize, int type);
 
-unsigned char* writeData(unsigned char* data, int dataSize, int seqNum, int* packetSize);
+unsigned char* writeData(unsigned char* data, int dataSize, int seqNum);
 
 long power(int x, int y);
 

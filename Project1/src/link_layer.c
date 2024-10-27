@@ -25,7 +25,7 @@ int llopen(LinkLayer connectionParameters)
     role = connectionParameters.role;
 
     (void)signal(SIGALRM, alarmHandler);
-    unsigned char buf[6] = {0};
+    unsigned char buf[5] = {0};
 
     int fd = openSerialPort(connectionParameters.serialPort, connectionParameters.baudRate);
     if (fd < 0) // && alarmCount == 0)
@@ -65,12 +65,12 @@ int llopen(LinkLayer connectionParameters)
 
     if(role == LlRx) {
         buf[0] = FLAG;
-        buf[1] = A_RX;
+        buf[1] = A_TX;
         buf[2] = C_UA;
         buf[3] = buf[1] ^ buf[2];
         buf[4] = FLAG;
     
-        int bytes = writeBytesSerialPort(buf, BUF_SIZE);
+        int bytes = writeBytesSerialPort(buf, 5);
         printf("%d bytes written\n", bytes);
     } 
 
@@ -84,10 +84,11 @@ int llwrite(const unsigned char *buf, int bufSize)
 {
     if (bufSize <= 0) return -1;
     
-    int maxFrameSize = 2*bufSize + 10;
+    int maxFrameSize = MAX_PAYLOAD_SIZE;
     int currentSize;
     int ans = 0;
     int size = 0;
+    int bytes = 0;
     
     alarmEnabled = FALSE;
     alarmCount = 0;
@@ -133,19 +134,19 @@ int llwrite(const unsigned char *buf, int bufSize)
 
             frame[currentSize] = FLAG;
 
-            int bytes = writeBytesSerialPort(frame, currentSize);
+            bytes = writeBytesSerialPort(frame, currentSize);
             printf("%d bytes written\n", bytes);
             
             alarm(timeout);
             alarmEnabled = TRUE;
         }
-
+        sleep(1);
         ans = writeStateMachine();
         printf("ans: %d\n", ans);
-        if(ans == 0) return size;
+        if(ans == 0) return bytes;
     } 
 
-    return size; // acho que isto são as written characters
+    return bytes; // acho que isto são as written characters
 }
 
 ////////////////////////////////////////////////
@@ -166,18 +167,17 @@ int llread(unsigned char *packet)
     for (int i = 0; i < size; i++)
         BCC2 ^= packet[i];
     
+    
     if (BCC2 == packet[size]) {
-        printf("sending a RR\n");
+        printf("RR\n");
         writeResponse(TRUE, iFrame);
 
         iFrame = !iFrame; // switch between 1 and 0
 
         return size;
     } else {
-        printf("Rejected\n");
-
+        printf("REJ\n");
         writeResponse(FALSE, iFrame);
-
         return -1;
     }
     
@@ -189,7 +189,7 @@ int llread(unsigned char *packet)
 
 int llclose(int showStatistics)
 {
-    unsigned char buf[6] = {0};
+    unsigned char buf[5] = {0};
 
     if (role == LlTx) {
         alarmEnabled = FALSE;

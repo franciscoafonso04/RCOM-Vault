@@ -55,35 +55,33 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             return;
         }
         free(startPacket);
+        printf("startPacket funcionou!\n");
 
         int seqNum = 0;
 
         // Send data packets until all the bytes are sent
-        while (fileLength > 0)
-        {
-
+        while (fileLength > 0) {
             // Read the file to check if it is the last packet
             int bytesRead = fread(buffer, 1, (fileLength >= bytes_to_Read) ? bytes_to_Read : fileLength, file);
-            if (bytesRead == 0){
+            if (bytesRead == 0) {
                 printf("Error reading the file.\n");
                 break;
             }
 
-            fileLength -= bytesRead;
-
-            packetSize = 0;
-            unsigned char* dataPacket = writeData(buffer, bytesRead, seqNum++, &packetSize);
-            if (llwrite(dataPacket, packetSize)){
+            unsigned char* dataPacket = writeData(buffer, bytesRead, seqNum++);
+            if (llwrite(dataPacket, 4 + bytesRead) == -1){
                 printf("Time exceeded in dataPacket\n");
                 return;
             }
             free(dataPacket);
+
+            fileLength -= bytesRead;
         }
 
         packetSize = 0;
         unsigned char* endPacket = writeControl(fileSize, filename, &packetSize, P_END);
 
-        if (llwrite(endPacket, packetSize)){
+        if (llwrite(endPacket, packetSize) == -1){
             printf("Time exceeded in endPacket\n");
             return;
         }
@@ -97,7 +95,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         long readBytes = 0;
         int pos = 0;
         unsigned char packet[MAX_PAYLOAD_SIZE + 5];
-        
+        //sleep(1);
         while (packet[0] != P_START)
             llread(packet);
 

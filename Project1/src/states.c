@@ -11,8 +11,7 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role){
             }
             break;
         case FLAG_RCV_S:
-            if ((buf[0] == A_TX && role == LlRx) 
-                || (buf[0] == A_RX && role == LlTx)) {
+            if (buf[0] == A_TX) {
                 *state = A_RCV_S;
             }
             
@@ -32,8 +31,7 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role){
             else *state = START_S;
             break;
         case C_RCV_S:
-            if ((buf[0] == (A_TX ^ C_SET) && role == LlRx)
-                || (buf[0] == (A_RX ^ C_UA) && role == LlTx)) {
+            if (buf[0] == (A_TX ^ C_SET) || buf[0] == (A_TX ^ C_UA)) {
                 *state = BCC_OK_S;
                 break;
             }
@@ -48,7 +46,6 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role){
         case BCC_OK_S:
             if (buf[0] == FLAG) {
                 *state = STOP_S;
-                printf("sucesso!\n");
                 return 0;
             }
             else {
@@ -64,13 +61,15 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role){
 
 int writeStateMachine(){
     State state = START_S;
-    unsigned char buf[6] = {0};
+    unsigned char buf[2] = {0};
     int ans = 0;
 
-    while (state != STOP_S && alarmEnabled) {
+    while (state != STOP_S && alarmEnabled == TRUE) {
+
         int byte = readByteSerialPort(buf);
         if (byte == 0) continue;
-        //printf("receivedByte = 0x%02X\n", buf[0]);
+
+        printf("receivedByte = 0x%02X\n", buf[0]);
 
         switch (state) {
             case START_S:
@@ -130,7 +129,7 @@ unsigned char readStateMachine(unsigned char *packet){
     State state = START_S;
 
     // buf = information being read, that will be destuffed and placed in packet  
-    unsigned char buf[256] = {0}; // NS QUE TAMANHO POR (eu sei :) muito engraçado mas tens um ( e dois ) dava erro de compilação
+    unsigned char buf[2] = {0}; // NS QUE TAMANHO POR (eu sei :) muito engraçado mas tens um ( e dois ) dava erro de compilação
     int ans = 0;
     int deStuff = FALSE;
     int size = 0;
@@ -140,13 +139,17 @@ unsigned char readStateMachine(unsigned char *packet){
         int byte = readByteSerialPort(buf);
         if (byte == 0) continue;
 
+        printf("receivedByte = 0x%02X\n", buf[0]);
+
         if (deStuff) {
             if (buf[0] == FLAG_SEQ)
                 packet[size] = FLAG;
             else if (buf[0] == ESC_SEQ)
                 packet[size] = ESC;
-            else
+            else {
+                printf("are we sure we want to continue?\n"); 
                 continue;
+            }
             size++;
             deStuff = FALSE;
         } else {
@@ -207,7 +210,7 @@ unsigned char discStateMachine() {
 
     alarmEnabled = TRUE;
     State state = START_S;
-    unsigned char buf[6] = {0};
+    unsigned char buf[5] = {0};
     while (state != STOP_S)
     {
         // Returns after 5 chars have been input
@@ -259,7 +262,7 @@ unsigned char discStateMachine() {
 unsigned char uaStateMachine() {
 
     State state = START_S;
-    unsigned char buf[6] = {0};
+    unsigned char buf[5] = {0};
     while (state != STOP_S)
     {
         // Returns after 5 chars have been input

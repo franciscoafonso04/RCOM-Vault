@@ -1,6 +1,6 @@
 #include "tools.h"
 
-int alarmEnabled = 0;
+int alarmEnabled = FALSE;
 int alarmCount = 0;
 int iFrame = 0;
 long fileSize = 0;
@@ -22,22 +22,9 @@ void arrayInsert(unsigned char arr[], int *n, int value, int pos) {
     (*n)++;
 }
 
-void arrayRemove(int arr[], int *n, int pos) {
-    
-    if (pos < 0 || pos >= *n) {
-        printf("Invalid position!\n");
-        return;
-    }
-
-    for (int i = pos; i < *n-1; i++) {
-        arr[i] = arr[i+1];
-    }
-
-    (*n)--;
-}
 
 void alarmHandler(int signal) {
-    alarmEnabled = 0;
+    alarmEnabled = FALSE;
     alarmCount++;
 
     printf("Alarm #%d\n", alarmCount);
@@ -45,10 +32,10 @@ void alarmHandler(int signal) {
 
 int writeResponse(int rr, int iFrame){
 
-    unsigned char buf[6] = {0};
+    unsigned char buf[5] = {0};
 
     buf[0] = FLAG;
-    buf[1] = A_RX;
+    buf[1] = A_TX;
 
     if (rr == TRUE){
         if (iFrame == 0)
@@ -66,13 +53,13 @@ int writeResponse(int rr, int iFrame){
     buf[3] = buf[1] ^ buf[2];
     buf[4] = FLAG;
 
-    printf("buf: ");
+    /*printf("buf: ");
     for (int i = 0; i < 5; i++) {
         printf("%02X ", buf[i]);
     }
-    printf("\n");
+    printf("\n");*/
 
-    return writeBytesSerialPort(buf, 6);
+    return writeBytesSerialPort(buf, 5);
 }
 
 unsigned char* writeControl(long fileSize, const char *fileName, int *packetSize, int type){
@@ -113,18 +100,17 @@ unsigned char* writeControl(long fileSize, const char *fileName, int *packetSize
     return buf;
 }
 
-unsigned char* writeData(unsigned char* data, int dataSize, int seqNum, int* packetSize) {
-    *packetSize = 4 + dataSize;  // Control + SeqNum + L2 + L1 + Data
+unsigned char* writeData(unsigned char* data, int dataSize, int seqNum) {
 
-    unsigned char* buf = (unsigned char*)malloc(*packetSize);
+    unsigned char* buf = (unsigned char*)malloc(4 + dataSize);
+    if (!buf) return NULL;  
 
     buf[0] = P_DATA;
-    buf[1] = seqNum % 256;  // (0-99)
+    buf[1] = seqNum % 256;
+    buf[2] = (dataSize >> 8) & 0xFF;
+    buf[3] = dataSize & 0xFF;
 
-    buf[2] = dataSize / 256;  // L2
-    buf[3] = dataSize % 256;  // L1
-
-    memcpy(&buf[4], data, dataSize);
+    memcpy(buf + 4, data, dataSize);
 
     return buf;
 }
