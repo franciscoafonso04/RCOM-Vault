@@ -25,7 +25,7 @@ int llopen(LinkLayer connectionParameters)
     nTries = connectionParameters.nRetransmissions;
     role = connectionParameters.role;
 
-    printf("Starting llopen: timeout = %d, nTries = %d, role = %d\n", timeout, nTries, role);
+    //printf("Starting llopen: timeout = %d, nTries = %d, role = %d\n", timeout, nTries, role);
 
     // Setup signal handler for alarm
     (void)signal(SIGALRM, alarmHandler);
@@ -34,10 +34,10 @@ int llopen(LinkLayer connectionParameters)
     // Attempt to open the serial port
     int fd = openSerialPort(connectionParameters.serialPort, connectionParameters.baudRate);
     if (fd < 0) {
-        printf("Failed to open serial port\n");
+        //printf("Failed to open serial port\n");
         return -1;
     }
-    printf("Serial port opened with file descriptor: %d\n", fd);
+    //printf("Serial port opened with file descriptor: %d\n", fd);
 
     State state = START_S;
 
@@ -53,8 +53,8 @@ int llopen(LinkLayer connectionParameters)
             buf[3] = buf[1] ^ buf[2];
             buf[4] = FLAG;
 
-            int bytes = writeBytesSerialPort(buf, 5);
-            printf("Transmitter sent SET: %d bytes written\n", bytes);
+            writeBytesSerialPort(buf, 5);
+            //printf("Transmitter sent SET: %d bytes written\n", bytes);
 
             // Enable alarm for timeout
             alarm(timeout);
@@ -69,7 +69,7 @@ int llopen(LinkLayer connectionParameters)
 
         // Call state machine and track state
         openStateMachine(&state, buf, role);
-        printf("Updated State after openStateMachine call: %d\n", state);
+        //printf("Updated State after openStateMachine call: %d\n", state);
 
         // Check if the number of retries has exceeded the limit
         if (alarmCount >= nTries) {
@@ -100,7 +100,7 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    if (bufSize <= 0) return -1;
+    if (bufSize <= 0 || buf == NULL) return -1;
     
     int maxFrameSize = MAX_PAYLOAD_SIZE;
     int currentSize;
@@ -122,25 +122,21 @@ int llwrite(const unsigned char *buf, int bufSize)
 
             // Building frame header
             frame[currentSize++] = FLAG;
-            frame[currentSize++] = A_TX;
-
-            if (iFrame == 0) frame[currentSize++] = C_I0; // Information frame number 0
-            else frame[currentSize++] = C_I1;  // Information frame number 1
-
+            frame[currentSize++] = A_TX;  
+            frame[currentSize++] = (iFrame == 0) ? C_I0 : C_I1;; // Information frame number 0
             frame[currentSize++] = frame[1] ^ frame[2];
-            printf("Frame header built: FLAG, A_TX, C_Ix, BCC1\n");
-
+            
             unsigned char BCC2 = 0;
             
             // Copy data and calculate BCC2
-            printf("Calculating BCC2 and adding data...\n");
+            //printf("Calculating BCC2 and adding data...\n");
             while (currentSize < bufSize + 4) {
                 BCC2 ^= *buf;
-                frame[currentSize++] = *buf;
-                buf++;
+                frame[currentSize++] = *buf++;
+                
             }
-            frame[currentSize++] = BCC2;
-            printf("Data and BCC2 added. BCC2 = 0x%02X, currentSize = %d\n", BCC2, currentSize);
+            frame[currentSize] = BCC2;
+            //printf("Data and BCC2 added. BCC2 = 0x%02X, currentSize = %d\n", BCC2, currentSize);
             
             // Byte-Stuffing for FLAG and ESC characters
             size = 4;
@@ -150,23 +146,23 @@ int llwrite(const unsigned char *buf, int bufSize)
                     arrayInsert(frame, &maxFrameSize, FLAG_SEQ, size + 1);
                     currentSize++;
                     size++; // Move past the inserted byte to avoid re-checking it.
-                    printf("Byte-stuffing FLAG at index %d\n", size);
+                    //printf("Byte-stuffing FLAG at index %d\n", size);
                 } else if (frame[size] == ESC) {
                     frame[size] = ESC;
                     arrayInsert(frame, &maxFrameSize, ESC_SEQ, size + 1);
                     currentSize++;
                     size++; // Move past the inserted byte to avoid re-checking it.
-                    printf("Byte-stuffing ESC at index %d\n", size);
+                    //printf("Byte-stuffing ESC at index %d\n", size);
                 }
                 size++;
             }
 
-            frame[currentSize] = FLAG;
-            printf("Frame completed with end FLAG. Total frame size: %d\n", currentSize);
+            frame[currentSize++] = FLAG;
+            //printf("Frame completed with end FLAG. Total frame size: %d\n", currentSize);
 
             // Send frame
             bytes = writeBytesSerialPort(frame, currentSize);
-            printf("%d bytes written to serial port\n", bytes);
+            //printf("%d bytes written to serial port\n", bytes);
             
             // Enable timeout
             alarm(timeout);
@@ -180,7 +176,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 
         // Success if acknowledgment received
         if (ans == 0) {
-            printf("Transmission successful. Total bytes written: %d\n", bytes);
+            //printf("Transmission successful. Total bytes written: %d\n", bytes);
             return bytes;
         }
     }
