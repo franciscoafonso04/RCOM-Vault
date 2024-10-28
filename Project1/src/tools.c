@@ -30,37 +30,48 @@ void alarmHandler(int signal) {
     printf("Alarm #%d\n", alarmCount);
 }
 
-int writeResponse(int rr, int iFrame){
-
+int writeResponse(int rr, int iFrame)
+{
     unsigned char buf[5] = {0};
 
+    // Build response frame
     buf[0] = FLAG;
     buf[1] = A_TX;
 
-    if (rr == TRUE){
-        if (iFrame == 0)
+    // Determine control field based on rr and iFrame
+    if (rr == TRUE) {
+        if (iFrame == 0) {
             buf[2] = C_RR1;
-        else if (iFrame == 1)
+            printf("Sending RR1\n");
+        } else if (iFrame == 1) {
             buf[2] = C_RR0;
-    }
-    else if (rr == FALSE){
-        if (iFrame == 0)
+            printf("Sending RR0\n");
+        }
+    } else if (rr == FALSE) {
+        if (iFrame == 0) {
             buf[2] = C_REJ0;
-        else if (iFrame == 1)
+            printf("Sending REJ0\n");
+        } else if (iFrame == 1) {
             buf[2] = C_REJ1;
+            printf("Sending REJ1\n");
+        }
     }
 
+    // Calculate BCC and set final FLAG
     buf[3] = buf[1] ^ buf[2];
     buf[4] = FLAG;
 
-    /*printf("buf: ");
+    // Print the response buffer for debugging
+    printf("Response Buffer: ");
     for (int i = 0; i < 5; i++) {
         printf("%02X ", buf[i]);
     }
-    printf("\n");*/
+    printf("\n");
 
+    // Send response
     return writeBytesSerialPort(buf, 5);
 }
+
 
 unsigned char* writeControl(long fileSize, const char *fileName, int *packetSize, int type){
     unsigned char l_size = 0;
