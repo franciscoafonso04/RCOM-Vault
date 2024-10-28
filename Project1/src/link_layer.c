@@ -29,7 +29,7 @@ int llopen(LinkLayer connectionParameters)
 
     // Setup signal handler for alarm
     (void)signal(SIGALRM, alarmHandler);
-    unsigned char buf[6] = {0};
+    unsigned char buf[5] = {0};
 
     // Attempt to open the serial port
     int fd = openSerialPort(connectionParameters.serialPort, connectionParameters.baudRate);
@@ -123,19 +123,21 @@ int llwrite(const unsigned char *buf, int bufSize)
             // Building frame header
             frame[currentSize++] = FLAG;
             frame[currentSize++] = A_TX;  
-            frame[currentSize++] = (iFrame == 0) ? C_I0 : C_I1;; // Information frame number 0
+            frame[currentSize++] = (iFrame == 0) ? C_I0 : C_I1; // Information frame number 0
             frame[currentSize++] = frame[1] ^ frame[2];
             
             unsigned char BCC2 = 0;
             
             // Copy data and calculate BCC2
             //printf("Calculating BCC2 and adding data...\n");
+            //printf("\nDATA BYTES BEFORE STUFFING: ");
             while (currentSize < bufSize + 4) {
                 BCC2 ^= *buf;
+                //printf("0x%02X ", *buf);
                 frame[currentSize++] = *buf++;
-                
             }
-            frame[currentSize] = BCC2;
+            //printf("\n");
+            frame[currentSize++] = BCC2;
             //printf("Data and BCC2 added. BCC2 = 0x%02X, currentSize = %d\n", BCC2, currentSize);
             
             // Byte-Stuffing for FLAG and ESC characters
@@ -157,9 +159,14 @@ int llwrite(const unsigned char *buf, int bufSize)
                 size++;
             }
 
+            /*printf("\nDATA BYTES AFTER STUFFING: ");
+            for (int i = 4; i < currentSize; i++) {
+                printf("0x%02X ", frame[i]);
+            }
+            printf("\n");*/
+
             frame[currentSize++] = FLAG;
             //printf("Frame completed with end FLAG. Total frame size: %d\n", currentSize);
-
             // Send frame
             bytes = writeBytesSerialPort(frame, currentSize);
             //printf("%d bytes written to serial port\n", bytes);
@@ -196,13 +203,13 @@ int llread(unsigned char *packet)
     printf("Read packet size: %d\n", size);
 
     // Check if no data was read
-    if (size == 0 ) {
+    if (size == 0) {
         printf("Didn't read anything, sending response to request retransmission.\n");
         writeResponse(TRUE, iFrame);
         return -1;
     }
 
-    if (size == -1 ) {
+    if (size == -1) {
         printf("iFrame mismatch with res");
         writeResponse(FALSE, iFrame);
         return -1;
@@ -210,12 +217,13 @@ int llread(unsigned char *packet)
 
     size -= 1; // Don't include BCC2 in the packet size
     unsigned char BCC2 = 0;
-
+    //printf("\nDATA BYTES AFTER DESTUFFING: ");
     // Calculate BCC2 over the packet data
     for (int i = 0; i < size; i++) {
         BCC2 ^= packet[i];
+        //printf("0x%02X ", packet[i]);
     }
-    printf("Calculated BCC2: 0x%02X, Expected BCC2: 0x%02X\n", BCC2, packet[size]);
+    printf("\nCalculated BCC2: 0x%02X, Expected BCC2: 0x%02X\n", BCC2, packet[size]);
 
     // Check BCC2 validity
     if (BCC2 == packet[size]) {
@@ -286,6 +294,7 @@ int llclose(int showStatistics)
     } else { // role == LlRx
         printf("Role: LlRx (Receiver)\n");
 
+        
         while (discStateMachine()) {
             printf("Waiting for DISC frame from Transmitter...\n");
         }
@@ -301,7 +310,9 @@ int llclose(int showStatistics)
             int bytes = writeBytesSerialPort(buf, 5);
             printf("Receiver sent DISC: %d bytes written\n", bytes);
 
-        } while (uaStateMachine());
+        } while (uaStateMachine()); 
+        
+        printf("Closed successfuly");
     }
 
     // Close serial port and optionally display statistics

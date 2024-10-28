@@ -105,7 +105,7 @@ int writeStateMachine() {
         int byte = readByteSerialPort(buf);
         if (byte == 0) continue;  // No byte received, loop continues
 
-        printf("Received Byte: 0x%02X, Current State: %d\n", buf[0], state);
+        //printf("Received Byte: 0x%02X, Current State: %d\n", buf[0], state);
 
         // Handle each state and transition
         switch (state) {
@@ -201,7 +201,7 @@ int writeStateMachine() {
 }
 
 
-unsigned char readStateMachine(unsigned char *packet) {
+int readStateMachine(unsigned char *packet) {
     State state = START_S;
 
     // Buffer to hold incoming bytes temporarily
@@ -212,21 +212,24 @@ unsigned char readStateMachine(unsigned char *packet) {
 
     printf("Starting readStateMachine...\n");
 
+    //printf("\nDATA BYTES BEFORE DESTUFFING: ");
+
     while (state != STOP_S) {
         
         // Read a byte from the serial port
         int byte = readByteSerialPort(buf);
         if (byte == 0) continue;
 
-        //printf("Received Byte: 0x%02X, Current State: %d\n", buf[0], state);
 
         // If we are in byte-stuffing mode, handle the next byte accordingly
         if (deStuff) {
             if (buf[0] == FLAG_SEQ) {
                 packet[size] = FLAG;
+                //printf("0x%02X ", buf[0]);
                 //printf("Byte-stuffed FLAG added to packet\n");
             } else if (buf[0] == ESC_SEQ) {
                 packet[size] = ESC;
+                //printf("0x%02X ", buf[0]);
                 //printf("Byte-stuffed ESC added to packet\n");
             } else {
                 //printf("Unexpected byte after ESC: 0x%02X\n", buf[0]);
@@ -293,10 +296,12 @@ unsigned char readStateMachine(unsigned char *packet) {
                         state = STOP_S;  // End of frame detected
                         //printf("Transitioned to STOP_S - Frame successfully received\n");
                     } else if (buf[0] == ESC) {
+                        //printf("0x%02X ", buf[0]);
                         deStuff = TRUE; // Start byte-stuffing mode
                         //printf("ESC detected, entering byte-stuffing mode\n");
                     } else {
                         packet[size] = buf[0]; // Add normal byte to packet
+                        //printf("0x%02X ", buf[0]);
                         size++;
                         //printf("Added byte 0x%02X to packet, current size: %d\n", buf[0], size);
                     }
@@ -314,6 +319,8 @@ unsigned char readStateMachine(unsigned char *packet) {
         return -1;
     }
 
+    //printf("\n");
+
     printf("Frame received successfully with size: %d\n", size);
     return size;
 }
@@ -327,8 +334,9 @@ unsigned char discStateMachine() {
 
     while (state != STOP_S) {
         // Read a byte from the serial port
-        readByteSerialPort(buf);
-        printf("Received byte: 0x%02X, Current State: %d\n", buf[0], state);
+        int byte = readByteSerialPort(buf);
+        if (byte == 0) continue;
+        //printf("Received byte: 0x%02X, Current State: %d\n", buf[0], state);
 
         switch (state) {
             case START_S:
@@ -391,52 +399,83 @@ unsigned char discStateMachine() {
 }
 
 
-unsigned char uaStateMachine() {
+#include <stdio.h>
 
+unsigned char uaStateMachine() {
     State state = START_S;
     unsigned char buf[5] = {0};
-    while (state != STOP_S)
-    {
+
+    printf("Starting UA State Machine\n");
+
+    while (state != STOP_S) {
         // Returns after 5 chars have been input
-        readByteSerialPort(buf);
+        int byte = readByteSerialPort(buf);
+        if (byte == 0) continue;
+        printf("Received byte: 0x%02X, Current state: %d\n", buf[0], state);
+
         switch (state) {
             case START_S:
-                if (buf[0] == FLAG)
+                if (buf[0] == FLAG) {
+                    printf("FLAG received, moving to FLAG_RCV_S\n");
                     state = FLAG_RCV_S;
+                }
                 break;
+
             case FLAG_RCV_S:
-                if (buf[0] == A_TX)
+                if (buf[0] == A_TX) {
+                    printf("A_TX received, moving to A_RCV_S\n");
                     state = A_RCV_S;
-                else if (buf[0] == FLAG)
-                    break;
-                else
+                } else if (buf[0] == FLAG) {
+                    printf("FLAG received again in FLAG_RCV_S, staying in FLAG_RCV_S\n");
+                } else {
+                    printf("Unexpected byte in FLAG_RCV_S, resetting to START_S\n");
                     state = START_S;
+                }
                 break;
+
             case A_RCV_S:
-                if (buf[0] == (C_UA))
+                if (buf[0] == C_UA) {
+                    printf("C_UA received, moving to C_RCV_S\n");
                     state = C_RCV_S;
-                else if (buf[0] == FLAG)
+                } else if (buf[0] == FLAG) {
+                    printf("FLAG received in A_RCV_S, moving to FLAG_RCV_S\n");
                     state = FLAG_RCV_S;
-                else
+                } else {
+                    printf("Unexpected byte in A_RCV_S, resetting to START_S\n");
                     state = START_S;
+                }
                 break;
+
             case C_RCV_S:
-                if (buf[0] == (A_TX ^ C_DISC))
+                if (buf[0] == (A_TX ^ C_UA)) {
+                    printf("BCC_OK condition met, moving to BCC_OK_S\n");
                     state = BCC_OK_S;
-                else if (buf[0] == FLAG)
+                } else if (buf[0] == FLAG) {
+                    printf("FLAG received in C_RCV_S, moving to FLAG_RCV_S\n");
                     state = FLAG_RCV_S;
-                else
+                } else {
+                    printf("Unexpected byte in C_RCV_S, resetting to START_S\n");
                     state = START_S;
+                }
                 break;
+
             case BCC_OK_S:
-                if (buf[0] == FLAG)
+                if (buf[0] == FLAG) {
+                    printf("FLAG received in BCC_OK_S, returning 0\n");
                     return 0;
-                else
+                } else {
+                    printf("Unexpected byte in BCC_OK_S, resetting to START_S\n");
                     state = START_S;
+                }
                 break;
+
             default:
-                break;
+                printf("Unknown state encountered, exiting.\n");
+                return 1;
         }
     }
+
+    printf("State machine exited with STOP_S, returning 1\n");
     return 1;
 }
+

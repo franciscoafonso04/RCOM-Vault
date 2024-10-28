@@ -7,7 +7,7 @@
 
 int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role);
 int writeStateMachine();
-unsigned char readStateMachine(unsigned char *packet);
+int readStateMachine(unsigned char *packet);
 unsigned char discStateMachine();
 unsigned char uaStateMachine();
 

@@ -43,7 +43,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fileSize = ftell(file);
         fseek(file, 0, SEEK_SET);
 
-        size_t bytes_to_Read = MAX_PAYLOAD_SIZE;
+        size_t bytes_to_Read = 900;
         unsigned char buffer[MAX_PAYLOAD_SIZE];
         long fileLength = fileSize;
 
@@ -134,7 +134,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
             // Write the data to the file
             if (size > 0){
-                size_t bytesWrittenNow = fwrite(packet + 3, 1, size - 3, file);
+                size_t bytesWrittenNow = fwrite(packet + 4, 1, size - 4, file);
                 if (bytesWrittenNow == (long)0)
                     break;
                 readBytes -= bytesWrittenNow;
