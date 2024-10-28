@@ -196,9 +196,15 @@ int llread(unsigned char *packet)
     printf("Read packet size: %d\n", size);
 
     // Check if no data was read
-    if (size == 0) {
+    if (size == 0 ) {
         printf("Didn't read anything, sending response to request retransmission.\n");
         writeResponse(TRUE, iFrame);
+        return -1;
+    }
+
+    if (size == -1 ) {
+        printf("iFrame mismatch with res");
+        writeResponse(FALSE, iFrame);
         return -1;
     }
 

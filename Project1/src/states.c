@@ -96,7 +96,7 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role) {
 int writeStateMachine() {
     State state = START_S;
     unsigned char buf[1] = {0};  // Buffer to hold received bytes
-    int ans = 0;
+    int res = 0;
 
     // Start of the main loop, runs until state is STOP_S or alarmEnabled is false
     while (state != STOP_S && alarmEnabled == TRUE) {
@@ -133,9 +133,9 @@ int writeStateMachine() {
             case A_RCV_S:
                 printf("State: A_RCV_S\n");
                 if (buf[0] == C_RR0 || buf[0] == C_RR1 || buf[0] == C_REJ0 || buf[0] == C_REJ1) {
-                    ans = buf[0];
+                    res = buf[0];
                     state = C_RCV_S;
-                    printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", ans);
+                    printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", res);
                 } else if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
                     printf("Received FLAG in A_RCV_S, transitioning back to FLAG_RCV_S\n");
@@ -147,7 +147,7 @@ int writeStateMachine() {
 
             case C_RCV_S:
                 printf("State: C_RCV_S\n");
-                if (buf[0] == (A_TX ^ ans)) {
+                if (buf[0] == (A_TX ^ res)) {
                     state = BCC_OK_S;
                     printf("Transitioned to BCC_OK_S\n");
                 } else if (buf[0] == FLAG) {
@@ -166,19 +166,19 @@ int writeStateMachine() {
                     alarm(0);  // Disable the alarm
                     printf("Received FLAG, transitioning to STOP_S - Successful frame\n");
 
-                    if (ans == C_REJ0 || ans == C_REJ1) {
+                    if (res == C_REJ0 || res == C_REJ1) {
                         printf("Received REJ, returning -2\n");
                         return -2;
                     }
-                    if ((ans == C_RR0 && iFrame == 0) || (ans == C_RR1 && iFrame == 1)) {
+                    if ((res == C_RR0 && iFrame == 0) || (res == C_RR1 && iFrame == 1)) {
                         printf("Received duplicate RR, returning -3\n");
                         return -3;
                     }
-                    if (ans == C_RR0) {
+                    if (res == C_RR0) {
                         iFrame = 0;
                         printf("Received RR0, iFrame set to 0\n");
                     }
-                    if (ans == C_RR1) {
+                    if (res == C_RR1) {
                         iFrame = 1;
                         printf("Received RR1, iFrame set to 1\n");
                     }
@@ -206,7 +206,7 @@ unsigned char readStateMachine(unsigned char *packet) {
 
     // Buffer to hold incoming bytes temporarily
     unsigned char buf[1] = {0};  
-    int ans = 0;          // Holds the control field (C_I0 or C_I1) if found
+    int res = 0;          // Holds the control field (C_I0 or C_I1) if found
     int deStuff = FALSE;  // Flag for handling byte-stuffing
     int size = 0;         // Tracks the size of the packet data
 
@@ -224,12 +224,12 @@ unsigned char readStateMachine(unsigned char *packet) {
         if (deStuff) {
             if (buf[0] == FLAG_SEQ) {
                 packet[size] = FLAG;
-                printf("Byte-stuffed FLAG added to packet\n");
+                //printf("Byte-stuffed FLAG added to packet\n");
             } else if (buf[0] == ESC_SEQ) {
                 packet[size] = ESC;
-                printf("Byte-stuffed ESC added to packet\n");
+                //printf("Byte-stuffed ESC added to packet\n");
             } else {
-                printf("Unexpected byte after ESC: 0x%02X\n", buf[0]);
+                //printf("Unexpected byte after ESC: 0x%02X\n", buf[0]);
                 continue;
             }
             size++;
@@ -241,64 +241,64 @@ unsigned char readStateMachine(unsigned char *packet) {
                     //printf("State: START_S\n");
                     if (buf[0] == FLAG) {
                         state = FLAG_RCV_S;
-                        printf("Transitioned to FLAG_RCV_S\n");
+                        //printf("Transitioned to FLAG_RCV_S\n");
                     }
                     break;
 
                 case FLAG_RCV_S:
-                    printf("State: FLAG_RCV_S\n");
+                    //printf("State: FLAG_RCV_S\n");
                     if (buf[0] == A_TX) {
                         state = A_RCV_S;
-                        printf("Transitioned to A_RCV_S\n");
+                        //printf("Transitioned to A_RCV_S\n");
                     } else if (buf[0] == FLAG) {
-                        printf("Received another FLAG, staying in FLAG_RCV_S\n");
+                        //printf("Received another FLAG, staying in FLAG_RCV_S\n");
                     } else {
                         state = START_S;
-                        printf("Invalid byte in FLAG_RCV_S, resetting to START_S\n");
+                        //printf("Invalid byte in FLAG_RCV_S, resetting to START_S\n");
                     }
                     break;
 
                 case A_RCV_S:
-                    printf("State: A_RCV_S\n");
+                    //printf("State: A_RCV_S\n");
                     if (buf[0] == C_I0 || buf[0] == C_I1) {
                         state = C_RCV_S;
-                        ans = buf[0]; // Store the control field for later checks
-                        printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", ans);
+                        res = buf[0]; // Store the control field for later checks
+                        //printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", ans);
                     } else if (buf[0] == FLAG) {
                         state = FLAG_RCV_S;
-                        printf("Received FLAG, transitioning back to FLAG_RCV_S\n");
+                        //printf("Received FLAG, transitioning back to FLAG_RCV_S\n");
                     } else {
                         state = START_S;
-                        printf("Invalid byte in A_RCV_S, resetting to START_S\n");
+                        //printf("Invalid byte in A_RCV_S, resetting to START_S\n");
                     }
                     break;
 
                 case C_RCV_S:
-                    printf("State: C_RCV_S\n");
-                    if (buf[0] == (A_TX ^ ans)) {
+                    //printf("State: C_RCV_S\n");
+                    if (buf[0] == (A_TX ^ res)) {
                         state = BCC_OK_S;
-                        printf("Transitioned to BCC_OK_S\n");
+                        //printf("Transitioned to BCC_OK_S\n");
                     } else if (buf[0] == FLAG) {
                         state = FLAG_RCV_S;
-                        printf("Received FLAG in C_RCV_S, transitioning back to FLAG_RCV_S\n");
+                        //printf("Received FLAG in C_RCV_S, transitioning back to FLAG_RCV_S\n");
                     } else {
                         state = START_S;
-                        printf("Invalid BCC or unexpected byte in C_RCV_S, resetting to START_S\n");
+                        //printf("Invalid BCC or unexpected byte in C_RCV_S, resetting to START_S\n");
                     }
                     break;
 
                 case BCC_OK_S:
-                    printf("State: BCC_OK_S\n");
+                    //printf("State: BCC_OK_S\n");
                     if (buf[0] == FLAG) {
                         state = STOP_S;  // End of frame detected
-                        printf("Transitioned to STOP_S - Frame successfully received\n");
+                        //printf("Transitioned to STOP_S - Frame successfully received\n");
                     } else if (buf[0] == ESC) {
                         deStuff = TRUE; // Start byte-stuffing mode
-                        printf("ESC detected, entering byte-stuffing mode\n");
+                        //printf("ESC detected, entering byte-stuffing mode\n");
                     } else {
                         packet[size] = buf[0]; // Add normal byte to packet
                         size++;
-                        printf("Added byte 0x%02X to packet, current size: %d\n", buf[0], size);
+                        //printf("Added byte 0x%02X to packet, current size: %d\n", buf[0], size);
                     }
                     break;
 
@@ -310,8 +310,7 @@ unsigned char readStateMachine(unsigned char *packet) {
     }
 
     // Verify if iFrame matches the received control field (ans)
-    if (iFrame != ans) {
-        printf("iFrame mismatch with ans. Expected: %d, Received: 0x%02X\n", iFrame, ans);
+    if ((iFrame == 1 && res != 0x80) || (iFrame == 0 && res != 0x00)) {
         return -1;
     }
 
