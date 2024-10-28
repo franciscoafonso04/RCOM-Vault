@@ -3,6 +3,10 @@
 #include "application_layer.h"
 #include "tools.h"
 
+int framesSent = 0;
+int alarmTotalCount = 0;
+int rejCount = 0;
+double timeSpent = 0;
 extern long fileSize;
 extern time_t delta;
 
@@ -89,6 +93,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         printf("All bytes were written\n");
 
+        timeSpent += difftime(time(NULL), start);
         fclose(file);
 
     } else if (connect.role == LlRx) {
@@ -149,6 +154,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
         printf("All bytes were read and written\n");
 
+        timeSpent += difftime(time(NULL), start);
         fclose(file);
     }
 

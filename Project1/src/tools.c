@@ -1,5 +1,6 @@
 #include "tools.h"
 
+extern int alarmTotalCount;
 int alarmEnabled = FALSE;
 int alarmCount = 0;
 int iFrame = 0;
@@ -26,6 +27,7 @@ void arrayInsert(unsigned char arr[], int *n, int value, int pos) {
 void alarmHandler(int signal) {
     alarmEnabled = FALSE;
     alarmCount++;
+    alarmTotalCount++;
 
     printf("Alarm #%d\n", alarmCount);
 }

@@ -2,9 +2,11 @@
 
 #include "states.h"
 
-extern int alarmEnabled, alarmCount;
+extern int alarmEnabled, alarmCount, alarmTotalCount, rejCount;
 extern int iFrame;
+extern int framesSent;
 int timeout, nTries;
+extern double timeSpent;
 LinkLayerRole role;
 extern long fileSize;
 extern time_t delta;
@@ -170,7 +172,8 @@ int llwrite(const unsigned char *buf, int bufSize)
             // Send frame
             bytes = writeBytesSerialPort(frame, currentSize);
             //printf("%d bytes written to serial port\n", bytes);
-            
+            framesSent++;
+
             // Enable timeout
             alarm(timeout);
             alarmEnabled = TRUE;
@@ -200,6 +203,7 @@ int llread(unsigned char *packet)
 {
     // Attempt to read packet with state machine
     int size = readStateMachine(packet);
+    framesSent++;
     printf("Read packet size: %d\n", size);
 
     // Check if no data was read
@@ -212,6 +216,7 @@ int llread(unsigned char *packet)
     if (size == -1) {
         printf("iFrame mismatch with res");
         writeResponse(FALSE, iFrame);
+        rejCount++;
         return -1;
     }
 
@@ -237,6 +242,7 @@ int llread(unsigned char *packet)
         return size;
     } else {
         printf("BCC2 check failed. Sending REJ.\n");
+        rejCount++;
         writeResponse(FALSE, iFrame);
         return -1;
     }
@@ -330,14 +336,14 @@ int llclose(int showStatistics)
         printf("File size: %ld\n", fileSize);
 
         if (role == LlTx) {
-            printf("Frames sent: %d\n", 3);  // Placeholder values
-            printf("Total number of alarms: %d\n", 3); // Placeholder
+            printf("Frames sent: %d\n", framesSent);  
+            printf("Total number of alarms: %d\n", alarmTotalCount); 
         } else {
-            printf("Frames read: %d\n", 3); // Placeholder
-            printf("Number of rejection/repetitions: %d\n", 3); // Placeholder
+            printf("Frames read: %d\n", framesSent); 
+            printf("Number of rejection/repetitions: %d\n", rejCount); 
         }
 
-        printf("Time spent: %g seconds\n", 3.2); // Placeholder
+        printf("Time spent: %g seconds\n", timeSpent); // Placeholder
         printf("Total time: %ld seconds\n", delta);
     }
 
