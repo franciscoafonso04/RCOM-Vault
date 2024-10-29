@@ -120,6 +120,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     while (alarmCount < nTries) {
         currentSize = 0;
         bufPos = 0;
+        maxFrameSize = MAX_PAYLOAD_SIZE;
 
         if (alarmEnabled == FALSE || ans < 0) {
             unsigned char frame[maxFrameSize];
@@ -182,7 +183,6 @@ int llwrite(const unsigned char *buf, int bufSize)
         }
         
         // Wait for acknowledgment
-        sleep(1);
         ans = writeStateMachine();
         printf("writeStateMachine response: %d\n", ans);
 
@@ -246,8 +246,8 @@ int llread(unsigned char *packet)
         return size;
     } else {
         printf("BCC2 check failed.\n");
-        rejCount++;
         writeResponse(FALSE, iFrame);
+        rejCount++;
         return -1;
     }
 }

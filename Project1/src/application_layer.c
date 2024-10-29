@@ -9,6 +9,7 @@ int rejCount = 0;
 double timeSpent = 0;
 extern long fileSize;
 extern time_t delta;
+extern int nRej;
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
@@ -100,9 +101,14 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         long readBytes = 0;
         int pos = 0;
         unsigned char packet[MAX_PAYLOAD_SIZE];
-        //sleep(1);
-        while (packet[0] != P_START)
+        while (packet[0] != P_START){
             llread(packet);
+
+            if (nRej > nTries) {
+                printf("exceeded number of retries!\n");
+                return;
+            }
+        }
 
         if (packet[1] == T_SIZE) {
             unsigned char n_bytes = packet[2];
@@ -115,7 +121,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
         else {
             printf("Error in the start control packet\n");
-            exit(1);
+            return;
         }
 
         // NÃO ESTOU A LER A PARTE DO NOME DO FICHEIRO PORQUE JÁ É PASSADO COMO ARGUMENTO
@@ -130,8 +136,14 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         int size = -1;
         while (packet[0] != P_END) {
             // Read until a data packet is received
-            while (size == -1)
+            while (size == -1) {
                 size = llread(packet);
+
+                if (nRej > nTries) {
+                    printf("exceeded number of retries!\n");
+                    return;
+                }
+            }
 
             // Check if the packet is the end control packet
             if (packet[0] == P_END)
@@ -150,7 +162,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         // Check if all the bytes were read and written
         if (readBytes > (long)0) {
             printf("Error: Data was lost! %ld bytes were lost\n", readBytes);
-            exit(1);
+            return;
         }
         printf("All bytes were read and written\n");
 

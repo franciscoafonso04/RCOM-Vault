@@ -4,6 +4,7 @@ extern int alarmTotalCount;
 int alarmEnabled = FALSE;
 int alarmCount = 0;
 int iFrame = 0;
+int nRej = 0;
 long fileSize = 0;
 time_t delta = 0;
 
@@ -42,6 +43,7 @@ int writeResponse(int rr, int iFrame)
 
     // Determine control field based on rr and iFrame
     if (rr == TRUE) {
+        nRej = 0;
         if (iFrame == 0) {
             buf[2] = C_RR1;
             printf("Sending RR1\n");
@@ -50,6 +52,7 @@ int writeResponse(int rr, int iFrame)
             printf("Sending RR0\n");
         }
     } else if (rr == FALSE) {
+        nRej++;
         if (iFrame == 0) {
             buf[2] = C_REJ0;
             printf("Sending REJ0\n");
