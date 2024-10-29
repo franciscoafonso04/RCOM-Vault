@@ -9,20 +9,20 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role) {
         
         case START_S:
             // Initial state, looking for the start FLAG byte
-            //printf("State: START_S\n");
+            ////printf("State: START_S\n");
             if (buf[0] == FLAG) {
                 *state = FLAG_RCV_S; // Transition to next state if FLAG is found
-                printf("Transitioned to FLAG_RCV_S\n");
+                ////printf("Transitioned to FLAG_RCV_S\n");
             }
             break;
 
         case FLAG_RCV_S:
             // Waiting for the correct address byte (A_TX or A_RX) based on role
-            //printf("State: FLAG_RCV_S, Received Byte: 0x%02X\n", buf[0]);
+            ////printf("State: FLAG_RCV_S, Received Byte: 0x%02X\n", buf[0]);
             if ((buf[0] == A_TX && role == LlRx) 
                 || (buf[0] == A_RX && role == LlTx)) {
                 *state = A_RCV_S; // Move to address received state
-                //printf("Transitioned to A_RCV_S\n");
+                ////printf("Transitioned to A_RCV_S\n");
             }
             else if (buf[0] == FLAG) {
                 //printf("Received FLAG again, staying in FLAG_RCV_S\n");
@@ -35,11 +35,11 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role) {
 
         case A_RCV_S:
             // Waiting for the correct control field (C_SET or C_UA) based on role
-            //printf("State: A_RCV_S, Received Byte: 0x%02X\n", buf[0]);
+            ////printf("State: A_RCV_S, Received Byte: 0x%02X\n", buf[0]);
             if ((buf[0] == C_SET && role == LlRx) 
                 || (buf[0] == C_UA && role == LlTx)) {
                 *state = C_RCV_S; // Move to control received state
-                //printf("Transitioned to C_RCV_S\n");
+                ////printf("Transitioned to C_RCV_S\n");
             }
             else if (buf[0] == FLAG) {
                 *state = FLAG_RCV_S; // FLAG received instead, resync frame
@@ -53,11 +53,11 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role) {
 
         case C_RCV_S:
             // Waiting for BCC1 (Block Check Character), which is a XOR of address and control fields
-            //printf("State: C_RCV_S, Received Byte: 0x%02X\n", buf[0]);
+            ////printf("State: C_RCV_S, Received Byte: 0x%02X\n", buf[0]);
             if ((buf[0] == (A_TX ^ C_SET) && role == LlRx) 
                 || (buf[0] == (A_RX ^ C_UA) && role == LlTx)) {
                 *state = BCC_OK_S; // BCC is correct, move to BCC_OK state
-                //printf("Transitioned to BCC_OK_S\n");
+                ////printf("Transitioned to BCC_OK_S\n");
             }
             else if (buf[0] == FLAG) {
                 *state = FLAG_RCV_S; // FLAG received, go back to re-sync
@@ -71,10 +71,10 @@ int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role) {
 
         case BCC_OK_S:
             // Expecting final FLAG to complete the frame
-            //printf("State: BCC_OK_S, Received Byte: 0x%02X\n", buf[0]);
+            ////printf("State: BCC_OK_S, Received Byte: 0x%02X\n", buf[0]);
             if (buf[0] == FLAG) {
                 *state = STOP_S; // End of frame, transition to STOP state
-                //printf("Transitioned to STOP_S - Success!\n");
+                ////printf("Transitioned to STOP_S - Success!\n");
                 return 0; // Return 0 to indicate a successful frame reception
             }
             else {
@@ -110,18 +110,18 @@ int writeStateMachine() {
         // Handle each state and transition
         switch (state) {
             case START_S:
-                printf("State: START_S\n");
+                ////printf("State: START_S\n");
                 if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
-                    printf("Transitioned to FLAG_RCV_S\n");
+                    //printf("Transitioned to FLAG_RCV_S\n");
                 }
                 break;
 
             case FLAG_RCV_S:
-                printf("State: FLAG_RCV_S\n");
+                //printf("State: FLAG_RCV_S\n");
                 if (buf[0] == A_TX) {
                     state = A_RCV_S;
-                    printf("Transitioned to A_RCV_S\n");
+                    //printf("Transitioned to A_RCV_S\n");
                 } else if (buf[0] == FLAG) {
                     printf("Received another FLAG in FLAG_RCV_S, remaining in this state\n");
                 } else {
@@ -131,11 +131,11 @@ int writeStateMachine() {
                 break;
 
             case A_RCV_S:
-                printf("State: A_RCV_S\n");
+                //printf("State: A_RCV_S\n");
                 if (buf[0] == C_RR0 || buf[0] == C_RR1 || buf[0] == C_REJ0 || buf[0] == C_REJ1) {
                     res = buf[0];
                     state = C_RCV_S;
-                    printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", res);
+                    //printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", res);
                 } else if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
                     printf("Received FLAG in A_RCV_S, transitioning back to FLAG_RCV_S\n");
@@ -146,10 +146,10 @@ int writeStateMachine() {
                 break;
 
             case C_RCV_S:
-                printf("State: C_RCV_S\n");
+                //printf("State: C_RCV_S\n");
                 if (buf[0] == (A_TX ^ res)) {
                     state = BCC_OK_S;
-                    printf("Transitioned to BCC_OK_S\n");
+                    //printf("Transitioned to BCC_OK_S\n");
                 } else if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
                     printf("Received FLAG in C_RCV_S, transitioning back to FLAG_RCV_S\n");
@@ -160,11 +160,11 @@ int writeStateMachine() {
                 break;
 
             case BCC_OK_S:
-                printf("State: BCC_OK_S\n");
+                //printf("State: BCC_OK_S\n");
                 if (buf[0] == FLAG) {
                     state = STOP_S;
                     alarm(0);  // Disable the alarm
-                    printf("Received FLAG, transitioning to STOP_S - Successful frame\n");
+                    //printf("Received FLAG, transitioning to STOP_S - Successful frame\n");
 
                     if (res == C_REJ0 || res == C_REJ1) {
                         printf("Received REJ, returning -2\n");
@@ -185,7 +185,7 @@ int writeStateMachine() {
                     return 0;
                 } else {
                     state = START_S;
-                    printf("Expected FLAG in BCC_OK_S, got 0x%02X. Resetting to START_S\n", buf[0]);
+                    //printf("Expected FLAG in BCC_OK_S, got 0x%02X. Resetting to START_S\n", buf[0]);
                 }
                 break;
 
@@ -209,8 +209,6 @@ int readStateMachine(unsigned char *packet) {
     int res = 0;          // Holds the control field (C_I0 or C_I1) if found
     int deStuff = FALSE;  // Flag for handling byte-stuffing
     int size = 0;         // Tracks the size of the packet data
-
-    printf("Starting readStateMachine...\n");
 
     //printf("\nDATA BYTES BEFORE DESTUFFING: ");
 
@@ -241,18 +239,18 @@ int readStateMachine(unsigned char *packet) {
             // Normal state handling without byte-stuffing
             switch (state) {
                 case START_S:
-                    //printf("State: START_S\n");
+                    ////printf("State: START_S\n");
                     if (buf[0] == FLAG) {
                         state = FLAG_RCV_S;
-                        //printf("Transitioned to FLAG_RCV_S\n");
+                        ////printf("Transitioned to FLAG_RCV_S\n");
                     }
                     break;
 
                 case FLAG_RCV_S:
-                    //printf("State: FLAG_RCV_S\n");
+                    ////printf("State: FLAG_RCV_S\n");
                     if (buf[0] == A_TX) {
                         state = A_RCV_S;
-                        //printf("Transitioned to A_RCV_S\n");
+                        ////printf("Transitioned to A_RCV_S\n");
                     } else if (buf[0] == FLAG) {
                         //printf("Received another FLAG, staying in FLAG_RCV_S\n");
                     } else {
@@ -262,11 +260,11 @@ int readStateMachine(unsigned char *packet) {
                     break;
 
                 case A_RCV_S:
-                    //printf("State: A_RCV_S\n");
+                    ////printf("State: A_RCV_S\n");
                     if (buf[0] == C_I0 || buf[0] == C_I1) {
                         state = C_RCV_S;
                         res = buf[0]; // Store the control field for later checks
-                        //printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", ans);
+                        ////printf("Transitioned to C_RCV_S, ans set to: 0x%02X\n", ans);
                     } else if (buf[0] == FLAG) {
                         state = FLAG_RCV_S;
                         //printf("Received FLAG, transitioning back to FLAG_RCV_S\n");
@@ -277,10 +275,10 @@ int readStateMachine(unsigned char *packet) {
                     break;
 
                 case C_RCV_S:
-                    //printf("State: C_RCV_S\n");
+                    ////printf("State: C_RCV_S\n");
                     if (buf[0] == (A_TX ^ res)) {
                         state = BCC_OK_S;
-                        //printf("Transitioned to BCC_OK_S\n");
+                        ////printf("Transitioned to BCC_OK_S\n");
                     } else if (buf[0] == FLAG) {
                         state = FLAG_RCV_S;
                         //printf("Received FLAG in C_RCV_S, transitioning back to FLAG_RCV_S\n");
@@ -291,10 +289,10 @@ int readStateMachine(unsigned char *packet) {
                     break;
 
                 case BCC_OK_S:
-                    //printf("State: BCC_OK_S\n");
+                    ////printf("State: BCC_OK_S\n");
                     if (buf[0] == FLAG) {
                         state = STOP_S;  // End of frame detected
-                        //printf("Transitioned to STOP_S - Frame successfully received\n");
+                        ////printf("Transitioned to STOP_S - Frame successfully received\n");
                     } else if (buf[0] == ESC) {
                         //printf("0x%02X ", buf[0]);
                         deStuff = TRUE; // Start byte-stuffing mode
@@ -342,13 +340,13 @@ unsigned char discStateMachine() {
             case START_S:
                 if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
-                    printf("Transitioned to FLAG_RCV_S\n");
+                    //printf("Transitioned to FLAG_RCV_S\n");
                 }
                 break;
             case FLAG_RCV_S:
                 if (buf[0] == A_TX) {
                     state = A_RCV_S;
-                    printf("Transitioned to A_RCV_S\n");
+                    //printf("Transitioned to A_RCV_S\n");
                 } else if (buf[0] == FLAG) {
                     printf("Repeated FLAG, remaining in FLAG_RCV_S\n");
                 } else {
@@ -359,7 +357,7 @@ unsigned char discStateMachine() {
             case A_RCV_S:
                 if (buf[0] == C_DISC) {
                     state = C_RCV_S;
-                    printf("Transitioned to C_RCV_S\n");
+                    //printf("Transitioned to C_RCV_S\n");
                 } else if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
                     printf("FLAG received, returning to FLAG_RCV_S\n");
@@ -371,7 +369,7 @@ unsigned char discStateMachine() {
             case C_RCV_S:
                 if (buf[0] == (A_TX ^ C_DISC)) {
                     state = BCC_OK_S;
-                    printf("Transitioned to BCC_OK_S\n");
+                    //printf("Transitioned to BCC_OK_S\n");
                 } else if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
                     printf("FLAG received, returning to FLAG_RCV_S\n");
@@ -398,8 +396,6 @@ unsigned char discStateMachine() {
     return 1;
 }
 
-
-#include <stdio.h>
 
 unsigned char uaStateMachine() {
     State state = START_S;
@@ -475,7 +471,7 @@ unsigned char uaStateMachine() {
         }
     }
 
-    printf("State machine exited with STOP_S, returning 1\n");
+    //printf("State machine exited with STOP_S, returning 1\n");
     return 1;
 }
 

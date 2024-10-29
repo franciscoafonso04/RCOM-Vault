@@ -109,15 +109,17 @@ int llwrite(const unsigned char *buf, int bufSize)
     int ans = 0;
     int size = 0;
     int bytes = 0;
+    int bufPos = 0;
 
     // Debug: initial settings
-    printf("Starting llwrite: bufSize = %d, maxFrameSize = %d, nTries = %d\n", bufSize, maxFrameSize, nTries);
+    printf("\nStarting llwrite: bufSize = %d, maxFrameSize = %d, nTries = %d\n", bufSize, maxFrameSize, nTries);
     
     alarmEnabled = FALSE;
     alarmCount = 0;
     
     while (alarmCount < nTries) {
         currentSize = 0;
+        bufPos = 0;
 
         if (alarmEnabled == FALSE || ans < 0) {
             unsigned char frame[maxFrameSize];
@@ -134,9 +136,9 @@ int llwrite(const unsigned char *buf, int bufSize)
             //printf("Calculating BCC2 and adding data...\n");
             //printf("\nDATA BYTES BEFORE STUFFING: ");
             while (currentSize < bufSize + 4) {
-                BCC2 ^= *buf;
+                BCC2 ^= buf[bufPos];
                 //printf("0x%02X ", *buf);
-                frame[currentSize++] = *buf++;
+                frame[currentSize++] = buf[bufPos++];
             }
             //printf("\n");
             frame[currentSize++] = BCC2;
@@ -201,10 +203,12 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
+
+    printf("\nStarting llread...\n");
+
     // Attempt to read packet with state machine
     int size = readStateMachine(packet);
     framesSent++;
-    printf("Read packet size: %d\n", size);
 
     // Check if no data was read
     if (size == 0) {
@@ -228,11 +232,11 @@ int llread(unsigned char *packet)
         BCC2 ^= packet[i];
         //printf("0x%02X ", packet[i]);
     }
-    printf("\nCalculated BCC2: 0x%02X, Expected BCC2: 0x%02X\n", BCC2, packet[size]);
+    printf("Calculated BCC2: 0x%02X, Expected BCC2: 0x%02X\n", BCC2, packet[size]);
 
     // Check BCC2 validity
     if (BCC2 == packet[size]) {
-        printf("BCC2 check passed. Sending RR.\n");
+        printf("BCC2 check passed.\n");
         writeResponse(TRUE, iFrame);
 
         // Toggle iFrame for the next expected frame
@@ -241,7 +245,7 @@ int llread(unsigned char *packet)
         // Return the size of the valid packet data
         return size;
     } else {
-        printf("BCC2 check failed. Sending REJ.\n");
+        printf("BCC2 check failed.\n");
         rejCount++;
         writeResponse(FALSE, iFrame);
         return -1;

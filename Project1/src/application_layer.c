@@ -47,7 +47,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fileSize = ftell(file);
         fseek(file, 0, SEEK_SET);
 
-        size_t bytes_to_Read = 900;
+        size_t bytes_to_Read = 700;
         unsigned char buffer[MAX_PAYLOAD_SIZE];
         long fileLength = fileSize;
 
@@ -99,7 +99,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     } else if (connect.role == LlRx) {
         long readBytes = 0;
         int pos = 0;
-        unsigned char packet[MAX_PAYLOAD_SIZE + 5];
+        unsigned char packet[MAX_PAYLOAD_SIZE];
         //sleep(1);
         while (packet[0] != P_START)
             llread(packet);
