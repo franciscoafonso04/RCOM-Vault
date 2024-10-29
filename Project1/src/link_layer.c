@@ -24,7 +24,7 @@ int llopen(LinkLayer connectionParameters)
     alarmCount = 0;
 
     timeout = connectionParameters.timeout;
-    nTries = connectionParameters.nRetransmissions;
+    nTries = connectionParameters.nRetransmissions + 1;
     role = connectionParameters.role;
 
     //printf("Starting llopen: timeout = %d, nTries = %d, role = %d\n", timeout, nTries, role);
@@ -112,7 +112,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     int bufPos = 0;
 
     // Debug: initial settings
-    printf("\nStarting llwrite: bufSize = %d, maxFrameSize = %d, nTries = %d\n", bufSize, maxFrameSize, nTries);
+    printf("\nStarting llwrite: bufSize = %d, maxFrameSize = %d, nAttempts = %d\n", bufSize, maxFrameSize, nTries);
     
     alarmEnabled = FALSE;
     alarmCount = 0;

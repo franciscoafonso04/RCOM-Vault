@@ -47,7 +47,7 @@ struct Parameters {
 
 struct Parameters par = {
     .cableOn = TRUE,
-    .byteER = 0.0,
+    .byteER = 0.0016,
     .propDelay = 0,
     .tx2rx = NULL,
     .tx2rxValid = NULL,
