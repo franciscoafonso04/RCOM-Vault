@@ -35,7 +35,8 @@ int llopen(LinkLayer connectionParameters)
 
     // Attempt to open the serial port
     int fd = openSerialPort(connectionParameters.serialPort, connectionParameters.baudRate);
-    if (fd < 0) {
+    if (fd < 0)
+    {
         //printf("Failed to open serial port\n");
         return -1;
     }
@@ -44,10 +45,12 @@ int llopen(LinkLayer connectionParameters)
     State state = START_S;
 
     // Main loop to handle state transitions
-    while (state != STOP_S) {
+    while (state != STOP_S)
+    {
 
         // Transmission block for transmitter role
-        if (alarmEnabled == FALSE && role == LlTx) {
+        if (alarmEnabled == FALSE && role == LlTx)
+        {
             // Construct SET frame
             buf[0] = FLAG;
             buf[1] = A_TX;
@@ -65,7 +68,8 @@ int llopen(LinkLayer connectionParameters)
 
         // Read bytes from serial port for both transmitter and receiver roles
         int byte = readByteSerialPort(buf);
-        if (byte == 0) continue;
+        if (byte == 0)
+            continue;
 
         //printf("Received byte: 0x%02X, Current State: %d\n", buf[0], state);
 
@@ -74,14 +78,16 @@ int llopen(LinkLayer connectionParameters)
         //printf("Updated State after openStateMachine call: %d\n", state);
 
         // Check if the number of retries has exceeded the limit
-        if (alarmCount >= nTries) {
+        if (alarmCount >= nTries)
+        {
             perror("Reached limit of retransmissions\n");
             return -1;
         }
     }
 
     // Respond with UA if role is LlRx (receiver)
-    if (role == LlRx) {
+    if (role == LlRx)
+    {
         buf[0] = FLAG;
         buf[1] = A_RX;
         buf[2] = C_UA;
@@ -96,14 +102,14 @@ int llopen(LinkLayer connectionParameters)
     return fd;
 }
 
-
 ////////////////////////////////////////////////
 // LLWRITE
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    if (bufSize <= 0 || buf == NULL) return -1;
-    
+    if (bufSize <= 0 || buf == NULL)
+        return -1;
+
     int maxFrameSize = MAX_PAYLOAD_SIZE;
     int currentSize;
     int ans = 0;
@@ -113,30 +119,33 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     // Debug: initial settings
     printf("\nStarting llwrite: bufSize = %d, maxFrameSize = %d, nAttempts = %d\n", bufSize, maxFrameSize, nTries);
-    
+
     alarmEnabled = FALSE;
     alarmCount = 0;
-    
-    while (alarmCount < nTries) {
+
+    while (alarmCount < nTries)
+    {
         currentSize = 0;
         bufPos = 0;
         maxFrameSize = MAX_PAYLOAD_SIZE;
 
-        if (alarmEnabled == FALSE || ans < 0) {
+        if (alarmEnabled == FALSE || ans < 0)
+        {
             unsigned char frame[maxFrameSize];
 
             // Building frame header
             frame[currentSize++] = FLAG;
-            frame[currentSize++] = A_TX;  
+            frame[currentSize++] = A_TX;
             frame[currentSize++] = (iFrame == 0) ? C_I0 : C_I1; // Information frame number 0
             frame[currentSize++] = frame[1] ^ frame[2];
-            
+
             unsigned char BCC2 = 0;
-            
+
             // Copy data and calculate BCC2
             //printf("Calculating BCC2 and adding data...\n");
             //printf("\nDATA BYTES BEFORE STUFFING: ");
-            while (currentSize < bufSize + 4) {
+            while (currentSize < bufSize + 4)
+            {
                 BCC2 ^= buf[bufPos];
                 //printf("0x%02X ", *buf);
                 frame[currentSize++] = buf[bufPos++];
@@ -144,17 +153,21 @@ int llwrite(const unsigned char *buf, int bufSize)
             //printf("\n");
             frame[currentSize++] = BCC2;
             //printf("Data and BCC2 added. BCC2 = 0x%02X, currentSize = %d\n", BCC2, currentSize);
-            
+
             // Byte-Stuffing for FLAG and ESC characters
             size = 4;
-            while (size < currentSize) {
-                if (frame[size] == FLAG) {
+            while (size < currentSize)
+            {
+                if (frame[size] == FLAG)
+                {
                     frame[size] = ESC;
                     arrayInsert(frame, &maxFrameSize, FLAG_SEQ, size + 1);
                     currentSize++;
                     size++; // Move past the inserted byte to avoid re-checking it.
                     //printf("Byte-stuffing FLAG at index %d\n", size);
-                } else if (frame[size] == ESC) {
+                }
+                else if (frame[size] == ESC)
+                {
                     frame[size] = ESC;
                     arrayInsert(frame, &maxFrameSize, ESC_SEQ, size + 1);
                     currentSize++;
@@ -181,13 +194,14 @@ int llwrite(const unsigned char *buf, int bufSize)
             alarm(timeout);
             alarmEnabled = TRUE;
         }
-        
+
         // Wait for acknowledgment
         ans = writeStateMachine();
         printf("writeStateMachine response: %d\n", ans);
 
         // Success if acknowledgment received
-        if (ans == 0) {
+        if (ans == 0)
+        {
             //printf("Transmission successful. Total bytes written: %d\n", bytes);
             return bytes;
         }
@@ -196,7 +210,6 @@ int llwrite(const unsigned char *buf, int bufSize)
     printf("Transmission failed after %d attempts.\n", alarmCount);
     return -1;
 }
-
 
 ////////////////////////////////////////////////
 // LLREAD
@@ -211,13 +224,15 @@ int llread(unsigned char *packet)
     framesSent++;
 
     // Check if no data was read
-    if (size == 0) {
+    if (size == 0)
+    {
         printf("Didn't read anything, sending response to request retransmission.\n");
         writeResponse(TRUE, iFrame);
         return -1;
     }
 
-    if (size == -1) {
+    if (size == -1)
+    {
         printf("iFrame mismatch with res");
         writeResponse(FALSE, iFrame);
         rejCount++;
@@ -228,14 +243,16 @@ int llread(unsigned char *packet)
     unsigned char BCC2 = 0;
     //printf("\nDATA BYTES AFTER DESTUFFING: ");
     // Calculate BCC2 over the packet data
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         BCC2 ^= packet[i];
         //printf("0x%02X ", packet[i]);
     }
     printf("Calculated BCC2: 0x%02X, Expected BCC2: 0x%02X\n", BCC2, packet[size]);
 
     // Check BCC2 validity
-    if (BCC2 == packet[size]) {
+    if (BCC2 == packet[size])
+    {
         printf("BCC2 check passed.\n");
         writeResponse(TRUE, iFrame);
 
@@ -244,14 +261,15 @@ int llread(unsigned char *packet)
 
         // Return the size of the valid packet data
         return size;
-    } else {
+    }
+    else
+    {
         printf("BCC2 check failed.\n");
         writeResponse(FALSE, iFrame);
         rejCount++;
         return -1;
     }
 }
-
 
 ////////////////////////////////////////////////
 // LLCLOSE
@@ -261,13 +279,16 @@ int llclose(int showStatistics)
 {
     unsigned char buf[5] = {0};
 
-    if (role == LlTx) {
+    if (role == LlTx)
+    {
         alarmEnabled = FALSE;
         alarmCount = 0;
         printf("Role: LlTx (Transmitter)\n");
 
-        while (alarmCount < nTries) {
-            if (alarmEnabled == FALSE) {
+        while (alarmCount < nTries)
+        {
+            if (alarmEnabled == FALSE)
+            {
                 // Construct and send DISC frame
                 buf[0] = FLAG;
                 buf[1] = A_TX;
@@ -283,7 +304,8 @@ int llclose(int showStatistics)
             }
 
             // Wait for DISC frame to send UA frame
-            if (!discStateMachine()) {
+            if (!discStateMachine())
+            {
                 buf[0] = FLAG;
                 buf[1] = A_TX;
                 buf[2] = C_UA;
@@ -296,20 +318,23 @@ int llclose(int showStatistics)
             }
         }
 
-        if (alarmCount >= nTries) {
+        if (alarmCount >= nTries)
+        {
             printf("Time exceeded! Maximum retries reached.\n");
             return 1;
         }
-
-    } else { // role == LlRx
+    }
+    else
+    { // role == LlRx
         printf("Role: LlRx (Receiver)\n");
 
-        
-        while (discStateMachine()) {
+        while (discStateMachine())
+        {
             printf("Waiting for DISC frame from Transmitter...\n");
         }
 
-        do {
+        do
+        {
             // Send DISC in response
             buf[0] = FLAG;
             buf[1] = A_TX;
@@ -320,8 +345,8 @@ int llclose(int showStatistics)
             int bytes = writeBytesSerialPort(buf, 5);
             printf("Receiver sent DISC: %d bytes written\n", bytes);
 
-        } while (uaStateMachine()); 
-        
+        } while (uaStateMachine());
+
         printf("Closed successfuly");
     }
 
@@ -329,7 +354,8 @@ int llclose(int showStatistics)
     int clstat = closeSerialPort();
     printf("Serial port closed with status: %d\n", clstat);
 
-    if (showStatistics) {
+    if (showStatistics)
+    {
         printf("\nStatistics:\n");
 
         if (role == LlTx)
@@ -339,12 +365,15 @@ int llclose(int showStatistics)
 
         printf("File size: %ld\n", fileSize);
 
-        if (role == LlTx) {
-            printf("Frames sent: %d\n", framesSent);  
-            printf("Total number of alarms: %d\n", alarmTotalCount); 
-        } else {
-            printf("Frames read: %d\n", framesSent); 
-            printf("Number of rejection/repetitions: %d\n", rejCount); 
+        if (role == LlTx)
+        {
+            printf("Frames sent: %d\n", framesSent);
+            printf("Total number of alarms: %d\n", alarmTotalCount);
+        }
+        else
+        {
+            printf("Frames read: %d\n", framesSent);
+            printf("Number of rejection/repetitions: %d\n", rejCount);
         }
 
         printf("Time spent: %g seconds\n", timeSpent); // Placeholder
@@ -353,4 +382,3 @@ int llclose(int showStatistics)
 
     return clstat;
 }
-

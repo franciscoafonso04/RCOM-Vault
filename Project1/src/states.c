@@ -167,6 +167,7 @@ int writeStateMachine() {
                     //printf("Received FLAG, transitioning to STOP_S - Successful frame\n");
 
                     if (res == C_REJ0 || res == C_REJ1) {
+                        alarmCount = 0;
                         printf("Received REJ, returning -2\n");
                         return -2;
                     }
