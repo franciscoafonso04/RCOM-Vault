@@ -1,6 +1,6 @@
 // Link layer protocol implementation
 
-#include "states.h"
+#include "state_machines.h"
 
 extern int alarmEnabled, alarmCount, alarmTotalCount, rejCount;
 extern int iFrame;

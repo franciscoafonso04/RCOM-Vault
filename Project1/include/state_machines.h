@@ -1,7 +1,7 @@
 // States header file.
 
-#ifndef _STATES_H_
-#define _STATES_H_
+#ifndef _STATE_MACHINES_H_
+#define _STATE_MACHINES_H_
 
 #include "tools.h"
 
@@ -11,4 +11,4 @@ int readStateMachine(unsigned char *packet);
 unsigned char discStateMachine();
 unsigned char uaStateMachine();
 
-#endif // _STATES_H_
+#endif // _STATE_MACHINES_H_
