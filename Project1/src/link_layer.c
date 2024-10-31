@@ -308,24 +308,16 @@ int llclose(int showStatistics)
     int clstat = closeSerialPort();
     printf("Serial port closed with status: %d\n", clstat);
 
-    if (showStatistics)
-    {
-        printf("\nStatistics:\n");
-
-        if (role == LlTx)
-            printf("User: Transmitter\n");
-        else
-            printf("User: Receiver\n");
-
-        printf("File size: %ld\n", fileSize);
-
-        if (role == LlTx)
-        {
+    if (showStatistics) {
+        if (role == LlTx) {
+            printf("\nTransmitter Statistics:\n");
+            printf("File size: %ld\n", fileSize);
             printf("Frames sent: %d\n", framesSent);
             printf("Total number of alarms: %d\n", alarmTotalCount);
         }
-        else
-        {
+        else if (role == LlRx) {
+            printf("\nReceiver Statistics:\n");
+            printf("File size: %ld\n", fileSize);
             printf("Frames read: %d\n", framesSent);
             printf("Number of rejection/repetitions: %d\n", rejCount);
         }
