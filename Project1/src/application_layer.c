@@ -6,7 +6,6 @@
 int framesSent = 0;
 int alarmTotalCount = 0;
 int rejCount = 0;
-double timeSpent = 0;
 extern long fileSize;
 extern time_t delta;
 extern int nRej;
@@ -14,7 +13,6 @@ extern int nRej;
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
-    time_t start = time(NULL);
     LinkLayer connect;
 
     connect.baudRate = baudRate;
@@ -33,6 +31,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         return;
     }
     printf("Connected\n");
+    time_t start = time(NULL);
 
     if (connect.role == LlTx) {
         
@@ -94,7 +93,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         printf("All bytes were written\n");
 
-        timeSpent += difftime(time(NULL), start);
         fclose(file);
 
     } else if (connect.role == LlRx) {
@@ -155,6 +153,9 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 if (bytesWrittenNow == (long)0)
                     break;
                 readBytes -= bytesWrittenNow;
+
+                double progress = 100.0 * ((double)(fileSize - readBytes) / (double)fileSize);
+                printf("%.2f%% completed...\n", progress);
             }
             size = -1;
         }
@@ -166,7 +167,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
         printf("All bytes were read and written\n");
 
-        timeSpent += difftime(time(NULL), start);
         fclose(file);
     }
 

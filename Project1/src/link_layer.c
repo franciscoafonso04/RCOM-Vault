@@ -5,11 +5,10 @@
 extern int alarmEnabled, alarmCount, alarmTotalCount, rejCount;
 extern int iFrame;
 extern int framesSent;
-int timeout, nTries;
-extern double timeSpent;
-LinkLayerRole role;
 extern long fileSize;
 extern time_t delta;
+int timeout, nTries;
+LinkLayerRole role;
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
@@ -27,7 +26,7 @@ int llopen(LinkLayer connectionParameters)
     nTries = connectionParameters.nRetransmissions + 1;
     role = connectionParameters.role;
 
-    //printf("Starting llopen: timeout = %d, nTries = %d, role = %d\n", timeout, nTries, role);
+    printf("Starting llopen...\n");
 
     // Setup signal handler for alarm
     (void)signal(SIGALRM, alarmHandler);
@@ -36,12 +35,8 @@ int llopen(LinkLayer connectionParameters)
     // Attempt to open the serial port
     int fd = openSerialPort(connectionParameters.serialPort, connectionParameters.baudRate);
     if (fd < 0)
-    {
-        //printf("Failed to open serial port\n");
         return -1;
-    }
-    //printf("Serial port opened with file descriptor: %d\n", fd);
-
+    
     State state = START_S;
 
     // Main loop to handle state transitions
@@ -59,7 +54,6 @@ int llopen(LinkLayer connectionParameters)
             buf[4] = FLAG;
 
             writeBytesSerialPort(buf, 5);
-            //printf("Transmitter sent SET: %d bytes written\n", bytes);
 
             // Enable alarm for timeout
             alarm(timeout);
@@ -71,11 +65,9 @@ int llopen(LinkLayer connectionParameters)
         if (byte == 0)
             continue;
 
-        //printf("Received byte: 0x%02X, Current State: %d\n", buf[0], state);
 
         // Call state machine and track state
         openStateMachine(&state, buf, role);
-        //printf("Updated State after openStateMachine call: %d\n", state);
 
         // Check if the number of retries has exceeded the limit
         if (alarmCount >= nTries)
@@ -118,7 +110,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     int bufPos = 0;
 
     // Debug: initial settings
-    printf("\nStarting llwrite: bufSize = %d, maxFrameSize = %d, nAttempts = %d\n", bufSize, maxFrameSize, nTries);
+    printf("\nStarting llwrite: frameSize = %d\n", bufSize);
 
     alarmEnabled = FALSE;
     alarmCount = 0;
@@ -142,17 +134,11 @@ int llwrite(const unsigned char *buf, int bufSize)
             unsigned char BCC2 = 0;
 
             // Copy data and calculate BCC2
-            //printf("Calculating BCC2 and adding data...\n");
-            //printf("\nDATA BYTES BEFORE STUFFING: ");
-            while (currentSize < bufSize + 4)
-            {
+            while (currentSize < bufSize + 4) {
                 BCC2 ^= buf[bufPos];
-                //printf("0x%02X ", *buf);
                 frame[currentSize++] = buf[bufPos++];
             }
-            //printf("\n");
             frame[currentSize++] = BCC2;
-            //printf("Data and BCC2 added. BCC2 = 0x%02X, currentSize = %d\n", BCC2, currentSize);
 
             // Byte-Stuffing for FLAG and ESC characters
             size = 4;
@@ -164,7 +150,6 @@ int llwrite(const unsigned char *buf, int bufSize)
                     arrayInsert(frame, &maxFrameSize, FLAG_SEQ, size + 1);
                     currentSize++;
                     size++; // Move past the inserted byte to avoid re-checking it.
-                    //printf("Byte-stuffing FLAG at index %d\n", size);
                 }
                 else if (frame[size] == ESC)
                 {
@@ -172,22 +157,13 @@ int llwrite(const unsigned char *buf, int bufSize)
                     arrayInsert(frame, &maxFrameSize, ESC_SEQ, size + 1);
                     currentSize++;
                     size++; // Move past the inserted byte to avoid re-checking it.
-                    //printf("Byte-stuffing ESC at index %d\n", size);
                 }
                 size++;
             }
 
-            /*printf("\nDATA BYTES AFTER STUFFING: ");
-            for (int i = 4; i < currentSize; i++) {
-                printf("0x%02X ", frame[i]);
-            }
-            printf("\n");*/
-
             frame[currentSize++] = FLAG;
-            //printf("Frame completed with end FLAG. Total frame size: %d\n", currentSize);
             // Send frame
             bytes = writeBytesSerialPort(frame, currentSize);
-            //printf("%d bytes written to serial port\n", bytes);
             framesSent++;
 
             // Enable timeout
@@ -202,7 +178,6 @@ int llwrite(const unsigned char *buf, int bufSize)
         // Success if acknowledgment received
         if (ans == 0)
         {
-            //printf("Transmission successful. Total bytes written: %d\n", bytes);
             return bytes;
         }
     }
@@ -224,16 +199,12 @@ int llread(unsigned char *packet)
     framesSent++;
 
     // Check if no data was read
-    if (size == 0)
-    {
+    if (size == 0) {
         printf("Didn't read anything, sending response to request retransmission.\n");
         writeResponse(TRUE, iFrame);
         return -1;
-    }
-
-    if (size == -1)
-    {
-        printf("iFrame mismatch with res");
+    } else if (size == -1) {
+        printf("iFrame mismatch with res\n");
         writeResponse(FALSE, iFrame);
         rejCount++;
         return -1;
@@ -241,19 +212,16 @@ int llread(unsigned char *packet)
 
     size -= 1; // Don't include BCC2 in the packet size
     unsigned char BCC2 = 0;
-    //printf("\nDATA BYTES AFTER DESTUFFING: ");
+
     // Calculate BCC2 over the packet data
-    for (int i = 0; i < size; i++)
-    {
+    for (int i = 0; i < size; i++) {
         BCC2 ^= packet[i];
-        //printf("0x%02X ", packet[i]);
     }
+
     printf("Calculated BCC2: 0x%02X, Expected BCC2: 0x%02X\n", BCC2, packet[size]);
 
     // Check BCC2 validity
-    if (BCC2 == packet[size])
-    {
-        printf("BCC2 check passed.\n");
+    if (BCC2 == packet[size]) {
         writeResponse(TRUE, iFrame);
 
         // Toggle iFrame for the next expected frame
@@ -262,9 +230,7 @@ int llread(unsigned char *packet)
         // Return the size of the valid packet data
         return size;
     }
-    else
-    {
-        printf("BCC2 check failed.\n");
+    else {
         writeResponse(FALSE, iFrame);
         rejCount++;
         return -1;
@@ -279,16 +245,13 @@ int llclose(int showStatistics)
 {
     unsigned char buf[5] = {0};
 
-    if (role == LlTx)
-    {
+    if (role == LlTx) {
         alarmEnabled = FALSE;
         alarmCount = 0;
-        printf("Role: LlTx (Transmitter)\n");
+        printf("\n");
 
-        while (alarmCount < nTries)
-        {
-            if (alarmEnabled == FALSE)
-            {
+        while (alarmCount < nTries) {
+            if (alarmEnabled == FALSE) {
                 // Construct and send DISC frame
                 buf[0] = FLAG;
                 buf[1] = A_TX;
@@ -304,8 +267,7 @@ int llclose(int showStatistics)
             }
 
             // Wait for DISC frame to send UA frame
-            if (!discStateMachine())
-            {
+            if (!discStateMachine()) {
                 buf[0] = FLAG;
                 buf[1] = A_TX;
                 buf[2] = C_UA;
@@ -313,28 +275,22 @@ int llclose(int showStatistics)
                 buf[4] = FLAG;
 
                 int bytes = writeBytesSerialPort(buf, 5);
-                printf("Transmitter sent UA: %d bytes written\n", bytes);
+                printf("Transmitter sent UA: %d bytes written.\n", bytes);
                 break;
             }
         }
 
-        if (alarmCount >= nTries)
-        {
+        if (alarmCount >= nTries) {
             printf("Time exceeded! Maximum retries reached.\n");
             return 1;
         }
     }
-    else
-    { // role == LlRx
-        printf("Role: LlRx (Receiver)\n");
+    else if (role == LlRx) {
+        printf("\n");
 
-        while (discStateMachine())
-        {
-            printf("Waiting for DISC frame from Transmitter...\n");
-        }
+        while (discStateMachine()) {}
 
-        do
-        {
+        do {
             // Send DISC in response
             buf[0] = FLAG;
             buf[1] = A_TX;
@@ -346,8 +302,6 @@ int llclose(int showStatistics)
             printf("Receiver sent DISC: %d bytes written\n", bytes);
 
         } while (uaStateMachine());
-
-        printf("Closed successfuly");
     }
 
     // Close serial port and optionally display statistics
@@ -376,7 +330,6 @@ int llclose(int showStatistics)
             printf("Number of rejection/repetitions: %d\n", rejCount);
         }
 
-        printf("Time spent: %g seconds\n", timeSpent); // Placeholder
         printf("Total time: %ld seconds\n", delta);
     }
 

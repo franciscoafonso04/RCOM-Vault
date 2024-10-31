@@ -1,12 +1,12 @@
 #include "tools.h"
 
-extern int alarmTotalCount;
 int alarmEnabled = FALSE;
 int alarmCount = 0;
 int iFrame = 0;
 int nRej = 0;
 long fileSize = 0;
 time_t delta = 0;
+extern int alarmTotalCount;
 
 void arrayInsert(unsigned char arr[], int *n, int value, int pos) {
 
@@ -65,13 +65,6 @@ int writeResponse(int rr, int iFrame)
     // Calculate BCC and set final FLAG
     buf[3] = buf[1] ^ buf[2];
     buf[4] = FLAG;
-
-    // Print the response buffer for debugging
-    printf("Response Buffer: ");
-    for (int i = 0; i < 5; i++) {
-        printf("%02X ", buf[i]);
-    }
-    printf("\n");
 
     // Send response
     return writeBytesSerialPort(buf, 5);
