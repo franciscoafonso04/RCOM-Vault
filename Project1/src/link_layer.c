@@ -40,12 +40,10 @@ int llopen(LinkLayer connectionParameters)
     State state = START_S;
 
     // Main loop to handle state transitions
-    while (state != STOP_S)
-    {
+    while (state != STOP_S) {
 
         // Transmission block for transmitter role
-        if (alarmEnabled == FALSE && role == LlTx)
-        {
+        if (alarmEnabled == FALSE && role == LlTx) {
             // Construct SET frame
             buf[0] = FLAG;
             buf[1] = A_TX;
@@ -65,21 +63,18 @@ int llopen(LinkLayer connectionParameters)
         if (byte == 0)
             continue;
 
-
         // Call state machine and track state
         openStateMachine(&state, buf, role);
 
         // Check if the number of retries has exceeded the limit
-        if (alarmCount >= nTries)
-        {
+        if (alarmCount >= nTries) {
             perror("Reached limit of retransmissions\n");
             return -1;
         }
     }
 
     // Respond with UA if role is LlRx (receiver)
-    if (role == LlRx)
-    {
+    if (role == LlRx) {
         buf[0] = FLAG;
         buf[1] = A_RX;
         buf[2] = C_UA;
@@ -115,14 +110,12 @@ int llwrite(const unsigned char *buf, int bufSize)
     alarmEnabled = FALSE;
     alarmCount = 0;
 
-    while (alarmCount < nTries)
-    {
+    while (alarmCount < nTries) {
         currentSize = 0;
         bufPos = 0;
         maxFrameSize = MAX_PAYLOAD_SIZE;
 
-        if (alarmEnabled == FALSE || ans < 0)
-        {
+        if (alarmEnabled == FALSE || ans < 0) {
             unsigned char frame[maxFrameSize];
 
             // Building frame header
@@ -142,17 +135,14 @@ int llwrite(const unsigned char *buf, int bufSize)
 
             // Byte-Stuffing for FLAG and ESC characters
             size = 4;
-            while (size < currentSize)
-            {
-                if (frame[size] == FLAG)
-                {
+            while (size < currentSize) {
+                if (frame[size] == FLAG) {
                     frame[size] = ESC;
                     arrayInsert(frame, &maxFrameSize, FLAG_SEQ, size + 1);
                     currentSize++;
                     size++; // Move past the inserted byte to avoid re-checking it.
                 }
-                else if (frame[size] == ESC)
-                {
+                else if (frame[size] == ESC) {
                     frame[size] = ESC;
                     arrayInsert(frame, &maxFrameSize, ESC_SEQ, size + 1);
                     currentSize++;
@@ -176,8 +166,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         printf("writeStateMachine response: %d\n", ans);
 
         // Success if acknowledgment received
-        if (ans == 0)
-        {
+        if (ans == 0) {
             return bytes;
         }
     }
