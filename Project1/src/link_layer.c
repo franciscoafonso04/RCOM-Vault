@@ -14,23 +14,24 @@ LinkLayerRole role;
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 #define BUF_SIZE 256
+
 ////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
     // Initialize control flags and parameters
-    alarmEnabled = FALSE;
-    alarmCount = 0;
-
-    timeout = connectionParameters.timeout;
-    nTries = connectionParameters.nRetransmissions + 1;
-    role = connectionParameters.role;
+    alarmEnabled = FALSE;                                   // Disable alarm initially
+    alarmCount = 0;                                         // Reset alarm counter to zero
+    timeout = connectionParameters.timeout;                 // Set timeout duration
+    nTries = connectionParameters.nRetransmissions + 1;     // Set retry limit (plus one for initial attempt)
+    role = connectionParameters.role;                       // Define role (LlTx for transmitter, LlRx for receiver)
 
     printf("Starting llopen...\n");
 
     // Setup signal handler for alarm
     (void)signal(SIGALRM, alarmHandler);
+
     unsigned char buf[5] = {0};
 
     // Attempt to open the serial port
@@ -38,6 +39,7 @@ int llopen(LinkLayer connectionParameters)
     if (fd < 0)
         return -1;
     
+    // Initialize state for state machine
     State state = START_S;
 
     // Main loop to handle state transitions
@@ -45,18 +47,18 @@ int llopen(LinkLayer connectionParameters)
 
         // Transmission block for transmitter role
         if (alarmEnabled == FALSE && role == LlTx) {
-            // Construct SET frame
-            buf[0] = FLAG;
-            buf[1] = A_TX;
-            buf[2] = C_SET;
-            buf[3] = buf[1] ^ buf[2];
-            buf[4] = FLAG;
+    
+            buf[0] = FLAG;                  // Start FLAG
+            buf[1] = A_TX;                  // Address byte for transmitter
+            buf[2] = C_SET;                 // Control byte for SET command
+            buf[3] = buf[1] ^ buf[2];       // BCC1: XOR of address and control fields
+            buf[4] = FLAG;                  // End FLAG
 
-            writeBytesSerialPort(buf, 5);
+            writeBytesSerialPort(buf, 5);   // Send frame via serial port
 
-            // Enable alarm for timeout
-            alarm(timeout);
-            alarmEnabled = TRUE;
+            
+            alarm(timeout);                 // Set timeout alarm
+            alarmEnabled = TRUE;            // Enable alarm
         }
 
         // Read bytes from serial port for both transmitter and receiver roles
@@ -76,13 +78,13 @@ int llopen(LinkLayer connectionParameters)
 
     // Respond with UA if role is LlRx (receiver)
     if (role == LlRx) {
-        buf[0] = FLAG;
-        buf[1] = A_RX;
-        buf[2] = C_UA;
-        buf[3] = buf[1] ^ buf[2];
-        buf[4] = FLAG;
+        buf[0] = FLAG;                  // Start FLAG
+        buf[1] = A_RX;                  // Address byte for receiver
+        buf[2] = C_UA;                  // Control byte for UA command
+        buf[3] = buf[1] ^ buf[2];       // BCC1: XOR of address and control fields
+        buf[4] = FLAG;                  // End FLAG
 
-        int bytes = writeBytesSerialPort(buf, 5);
+        int bytes = writeBytesSerialPort(buf, 5);   // Transmit the frame
         printf("Receiver sent UA: %d bytes written\n", bytes);
     }
 
@@ -95,78 +97,80 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+    // Check for valid buffer and size
     if (bufSize <= 0 || buf == NULL)
         return -1;
 
-    int maxFrameSize = MAX_PAYLOAD_SIZE;
-    int currentSize;
-    int ans = 0;
-    int size = 0;
-    int bytes = 0;
-    int bufPos = 0;
+    int maxFrameSize = MAX_PAYLOAD_SIZE;    // Maximum frame size
+    int currentSize;                        // Tracks current frame size
+    int ans = 0;                            // Response status
+    int size = 0;                           // Position in frame during stuffing
+    int bytes = 0;                          // Number of bytes written
+    int bufPos = 0;                         // Position in buffer
 
-    // Debug: initial settings
     printf("\nStarting llwrite: frameSize = %d\n", bufSize);
 
-    alarmEnabled = FALSE;
-    alarmCount = 0;
+    alarmEnabled = FALSE;                   // Reset alarm status
+    alarmCount = 0;                         // Reset alarm counter to zero
 
+    // Loop to retry transmission if necessary
     while (alarmCount < nTries) {
         currentSize = 0;
         bufPos = 0;
         maxFrameSize = MAX_PAYLOAD_SIZE;
 
+        // Transmit frame if no alarm is set or response was negative
         if (alarmEnabled == FALSE || ans < 0) {
             unsigned char frame[maxFrameSize];
 
             // Building frame header
-            frame[currentSize++] = FLAG;
-            frame[currentSize++] = A_TX;
-            frame[currentSize++] = (iFrame == 0) ? C_I0 : C_I1; // Information frame number 0
-            frame[currentSize++] = frame[1] ^ frame[2];
+            frame[currentSize++] = FLAG;                        // Start FLAG
+            frame[currentSize++] = A_TX;                        // Address byte 
+            frame[currentSize++] = (iFrame == 0) ? C_I0 : C_I1; // Control byte based on frame number
+            frame[currentSize++] = frame[1] ^ frame[2];         // BCC1: XOR of address and control fields
 
-            unsigned char BCC2 = 0;
+            unsigned char BCC2 = 0;         // Initialize BCC2 for data verification
 
             // Copy data and calculate BCC2
             while (currentSize < bufSize + 4) {
-                BCC2 ^= buf[bufPos];
-                frame[currentSize++] = buf[bufPos++];
+                BCC2 ^= buf[bufPos];                        // Calculate BCC2 over data
+                frame[currentSize++] = buf[bufPos++];       // Add data to frame
             }
-            frame[currentSize++] = BCC2;
+            frame[currentSize++] = BCC2;                    // Add BCC2 to frame
 
             // Byte-Stuffing for FLAG and ESC characters
             size = 4;
             while (size < currentSize) {
-                if (frame[size] == FLAG) {
+                if (frame[size] == FLAG) {                  // Replace FLAG with ESC + FLAG_SEQ
                     frame[size] = ESC;
                     arrayInsert(frame, &maxFrameSize, FLAG_SEQ, size + 1);
                     currentSize++;
-                    size++; // Move past the inserted byte to avoid re-checking it.
+                    size++; 
                 }
-                else if (frame[size] == ESC) {
+                else if (frame[size] == ESC) {              // Replace ESC with ESC + ESC_SEQ
                     frame[size] = ESC;
                     arrayInsert(frame, &maxFrameSize, ESC_SEQ, size + 1);
                     currentSize++;
-                    size++; // Move past the inserted byte to avoid re-checking it.
+                    size++; 
                 }
                 size++;
             }
 
-            frame[currentSize++] = FLAG;
-            // Send frame
-            bytes = writeBytesSerialPort(frame, currentSize);
-            framesSent++;
+            frame[currentSize++] = FLAG;    // End FLAG                    
 
-            // Enable timeout
-            alarm(timeout);
-            alarmEnabled = TRUE;
+            // Send the complete frame over serial port
+            bytes = writeBytesSerialPort(frame, currentSize);
+            framesSent++;                   // Increment frames sent counter                                  
+
+            alarm(timeout);                 // Set timeout alarm
+            alarmEnabled = TRUE;            // Enable alarm
         }
 
-        // Wait for acknowledgment
+        // Wait for acknowledgment using state machine
         ans = writeStateMachine();
         printf("writeStateMachine response: %d\n", ans);
 
-        // Success if acknowledgment received
+        // Return bytes written on success
         if (ans == 0) {
             return bytes;
         }
@@ -185,22 +189,24 @@ int llread(unsigned char *packet)
     printf("\nStarting llread...\n");
 
     // Attempt to read packet with state machine
-    int size = readStateMachine(packet);
-    framesSent++;
+    int size = readStateMachine(packet);    // Obtain packet size from state machine
+    framesSent++;                           // Increment frame counter
 
     // Check if no data was read
     if (size == 0) {
         printf("Didn't read anything, sending response to request retransmission.\n");
-        writeResponse(TRUE, iFrame);
-        return -1;
-    } else if (size == -1) {
+        writeResponse(TRUE, iFrame);        // Send RR to request retransmission
+        return -1;                          // Indicate no data read 
+    } 
+
+    else if (size == -1) {
         printf("iFrame mismatch with res\n");
-        writeResponse(FALSE, iFrame);
-        rejCount++;
-        return -1;
+        writeResponse(FALSE, iFrame);       // Send REJ due to incorrect iFrame
+        rejCount++;                         // Increment rejection counter
+        return -1;                          // Indicate mismatch
     }
 
-    size -= 1; // Don't include BCC2 in the packet size
+    size -= 1;                              // Exclude BCC2 from packet size
     unsigned char BCC2 = 0;
 
     // Calculate BCC2 over the packet data
@@ -212,18 +218,17 @@ int llread(unsigned char *packet)
 
     // Check BCC2 validity
     if (BCC2 == packet[size]) {
-        writeResponse(TRUE, iFrame);
+        writeResponse(TRUE, iFrame);        // Send RR to acknowledge valid frame
 
-        // Toggle iFrame for the next expected frame
-        iFrame = !iFrame;
+        iFrame = !iFrame;                   // Toggle iFrame for the next expected frame
 
-        // Return the size of the valid packet data
-        return size;
+        return size;                        // Return size of valid packet data
     }
+
     else {
-        writeResponse(FALSE, iFrame);
-        rejCount++;
-        return -1;
+        writeResponse(FALSE, iFrame);       // Send REJ for incorrect BCC2
+        rejCount++;                         // Increment rejection counter
+        return -1;                          // Indicate error
     }
 }
 
@@ -233,71 +238,80 @@ int llread(unsigned char *packet)
 
 int llclose(int showStatistics)
 {
-    unsigned char buf[5] = {0};
+    unsigned char buf[5] = {0};             // Buffer for DISC and UA frames
 
+    // If role is transmitter (LlTx), initiate disconnection
     if (role == LlTx) {
         alarmEnabled = FALSE;
         alarmCount = 0;
         printf("\n");
 
+        // Loop to send DISC frame and handle possible retransmissions
         while (alarmCount < nTries) {
             if (alarmEnabled == FALSE) {
                 // Construct and send DISC frame
-                buf[0] = FLAG;
-                buf[1] = A_TX;
-                buf[2] = C_DISC;
-                buf[3] = buf[1] ^ buf[2];
-                buf[4] = FLAG;
+                buf[0] = FLAG;              // Start FLAG
+                buf[1] = A_TX;              // Address byte for transmitter
+                buf[2] = C_DISC;            // Control byte for DISC command
+                buf[3] = buf[1] ^ buf[2];   // BCC1: XOR of address and control fields
+                buf[4] = FLAG;              // End FLAG
 
-                int bytes = writeBytesSerialPort(buf, 5);
+                int bytes = writeBytesSerialPort(buf, 5);       // Send DISC frame
                 printf("Transmitter sent DISC: %d bytes written\n", bytes);
 
-                alarmEnabled = TRUE;
-                alarm(timeout);
+                alarm(timeout);             // Set timeout alarm
+                alarmEnabled = TRUE;        // Enable alarm
             }
 
-            // Wait for DISC frame to send UA frame
-            if (!discStateMachine()) {
-                buf[0] = FLAG;
-                buf[1] = A_TX;
-                buf[2] = C_UA;
-                buf[3] = buf[1] ^ buf[2];
-                buf[4] = FLAG;
+            // Wait for DISC response, then send UA to acknowledge
+            if (!discStateMachine()) {      // Exit loop if DISC received
 
-                int bytes = writeBytesSerialPort(buf, 5);
+                buf[0] = FLAG;              // Start FLAG
+                buf[1] = A_TX;              // Address byte for transmitter
+                buf[2] = C_UA;              // Control byte for UA command
+                buf[3] = buf[1] ^ buf[2];   // BCC1: XOR of address and control fields
+                buf[4] = FLAG;              // End FLAG
+
+                int bytes = writeBytesSerialPort(buf, 5);   // Send UA frame
                 printf("Transmitter sent UA: %d bytes written.\n", bytes);
                 break;
             }
         }
 
+        // Check if retransmissions exceeded limit
         if (alarmCount >= nTries) {
             printf("Time exceeded! Maximum retries reached.\n");
             return 1;
         }
     }
+    
+    // If role is receiver (LlRx), wait for DISC and respond
     else if (role == LlRx) {
         printf("\n");
 
+        // Wait for DISC frame from transmitter
         while (discStateMachine()) {}
 
+        // Send DISC frame to acknowledge disconnection
         do {
-            // Send DISC in response
-            buf[0] = FLAG;
-            buf[1] = A_TX;
-            buf[2] = C_DISC;
-            buf[3] = buf[1] ^ buf[2];
-            buf[4] = FLAG;
+            
+            buf[0] = FLAG;              // Start FLAG
+            buf[1] = A_TX;              // Address byte for transmitter (besides being receiver acts as transmitter)
+            buf[2] = C_DISC;            // Control byte for DISC command
+            buf[3] = buf[1] ^ buf[2];   // BCC1: XOR of address and control fields
+            buf[4] = FLAG;              // End FLAG
 
             int bytes = writeBytesSerialPort(buf, 5);
             printf("Receiver sent DISC: %d bytes written\n", bytes);
 
-        } while (uaStateMachine());
+        } while (uaStateMachine());     // Wait for UA acknowledgment
     }
 
-    // Close serial port and optionally display statistics
+    // Close the serial port and log status
     int clstat = closeSerialPort();
     printf("Serial port closed with status: %d\n", clstat);
 
+    // If requested, display connection statistics
     if (showStatistics) {
         if (role == LlTx) {
             printf("\nTransmitter Statistics:\n");
