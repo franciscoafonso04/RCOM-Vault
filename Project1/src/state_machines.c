@@ -1,7 +1,7 @@
 #include "state_machines.h"
 
-extern int iFrame;
-extern int alarmEnabled;
+extern int alarmEnabled;    // Indicates if the alarm timer is active.
+extern int iFrame;          // Tracks the current information frame number (0 or 1)
 
 int openStateMachine(State *state, unsigned char *buf, LinkLayerRole role) {
     

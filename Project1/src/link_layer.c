@@ -2,14 +2,18 @@
 
 #include "state_machines.h"
 
-extern int alarmEnabled, alarmCount, alarmTotalCount;
-extern int rejCount;
-extern int iFrame;
-extern int framesSent;
-extern long fileSize;
-extern double delta;
-int timeout, nTries;
-LinkLayerRole role;
+extern int alarmCount;        // Counts the number of triggered alarms
+extern int alarmEnabled;      // Indicates if the alarm timer is active
+extern int alarmTotalCount;   // Counts the total number of alarms during execution
+extern int framesSent;        // Counts the total number of frames successfully sent
+extern int iFrame;            // Indicates the current information frame number (0 or 1)
+extern int rejCount;          // Counts the number of REJ frames received due to errors
+extern long fileSize;         // Size of the file being transferred in bytes
+extern double delta;          // Elapsed time for file transfer in seconds
+int nTries;                   // Number of retry attempts allowed for each frame transmission
+int timeout;                  // Timeout duration in seconds for retrying failed transmissions
+LinkLayerRole role;           // Role in link layer (LlTx for transmitter, LlRx for receiver)
+
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source

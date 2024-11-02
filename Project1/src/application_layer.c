@@ -3,12 +3,12 @@
 #include "application_layer.h"
 #include "tools.h"
 
-int framesSent = 0;           // Tracks the total number of frames successfully sent
-int alarmTotalCount = 0;      // Counts the total number of alarms 
-int rejCount = 0;             // Counts the number of REJ frames received
-extern long fileSize;         // Represents the total file size in bytes, shared globally
-extern double delta;          // Stores the total time taken for the transmission, shared globally
-extern int nRej;              // Tracks the total number of REJ frames, shared globally
+extern int nRej;              // Tracks the total number of REJ frames
+extern long fileSize;         // Size of the file being transferred in bytes
+extern double delta;          // Elapsed time for file transfer in seconds
+int alarmTotalCount = 0;      // Counts the total number of alarms during execution 
+int framesSent = 0;           // Counts the total number of frames successfully sent
+int rejCount = 0;             // Counts the number of REJ frames received due to errors
 
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,

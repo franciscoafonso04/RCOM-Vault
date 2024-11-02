@@ -1,12 +1,13 @@
 #include "tools.h"
 
-int alarmEnabled = FALSE;      // Indicates if the alarm is currently enabled (used for timeout control)
-int alarmCount = 0;            // Tracks the number of alarms triggered
-int iFrame = 0;                // Tracks the current information frame number (0 or 1)
-int nRej = 0;                  // Counts the number of REJ frames received
-long fileSize = 0;             // Represents the total file size in bytes
-double delta = 0;              // Stores the total time taken for the transmission
-extern int alarmTotalCount;    // Counts the total number of alarms, shared globally
+extern int alarmTotalCount;    // Counts the total number of alarms during execution
+int alarmCount = 0;            // Counts the number of triggered alarms
+int alarmEnabled = FALSE;      // Indicates if the alarm timer is active (starts disabled)
+int iFrame = 0;                // Indicates the current information frame number (0 or 1)
+int nRej = 0;                  // Counts the number of REJ frames received due to errors
+long fileSize = 0;             // Size of the file being transferred in bytes
+double delta = 0;              // Elapsed time for file transfer in seconds
+
 
 // Function to insert a value into an array at a specified position
 void arrayInsert(unsigned char arr[], int *n, int value, int pos) {
