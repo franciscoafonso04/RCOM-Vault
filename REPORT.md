@@ -77,7 +77,7 @@ int framesSent = 0; // total number of frames sent, used for statistics
 int alarmTotalCount = 0; // total number of alarms set off, used for statistics
 int rejCount = 0; // total number of rejection commands sent, used for statistics
 extern long fileSize; // total size of the file in bytes, used for statistics
-extern time_t delta; // total time passed between the connection and disconnection phases, used for statistics
+extern double delta; // total time passed between the connection and disconnection phases, used for statistics
 extern int nRej; // number of consecutive rejection commands sent, used for terminating the program if necessary
 ```
 
@@ -106,7 +106,7 @@ extern int alarmEnabled, alarmCount, alarmTotalCount, rejCount; // alarm control
 extern int iFrame; // identifier for frame numbering in link layer protocol
 extern int framesSent; // count of successfully sent frames
 extern long fileSize; // total size of the transmitted file
-extern time_t delta; // elapsed time during connection session
+extern double delta; // elapsed time during connection session
 int timeout, nTries; // parameters for retransmission timeout and retry count
 LinkLayerRole role; // role of the connection, either transmitter or receiver
 ```
@@ -201,7 +201,7 @@ extern int alarmEnabled; // alarm status flag
 extern int alarmCount; // counter for active alarms
 extern int iFrame; // current frame index for transmissions
 extern long fileSize; // total size of the file in bytes
-extern time_t delta; // elapsed time since start of connection session
+extern double delta; // elapsed time since start of connection session
 ```
 
 ### Macros
@@ -452,14 +452,63 @@ If `llclose()` is called with `TRUE`, transmission statistics such as bytes sent
 
 # Validation
 
+In order to validate the correctness of our code, we performed various tests:
 
+- Files with different sizes
+- Transmission of different sized packets
+- Transmission with different baud rates
+- Artificially manipulated byte error rates
+- Transmission interrupted at various stages
+- Simulated propagation delay
+
+| Baud rate | Time elapsed (s) |
+| --------- | ---------------- |
+| 2400      | 47               |
+| 4800      | 24               |
+| 9600      | 11               |
+| 19200     | 6                |
+| 38400     | 3                |
+| 57600     | 2                |
+| 115200    | 1                |
+
+All of the tests were successfully completed.
 
 # Data Link Protocol Efficiency
 
+## Stop & Wait Protocol Overview
 
+The Stop & Wait protocol allows the sender to transmit one frame at a time, waiting for an acknowledgment from the receiver before sending the next frame. 
+If an error is detected, the receiver sends a negative acknowledgment, prompting retransmission. 
+Frames and acknowledgments are numbered to distinguish between new transmissions and repeats, and a timeout mechanism ensures that the sender retransmits if no response is received within a set period.
+
+## Key Factors Affecting Efficiency
+
+1. **Frame Error Rate**
+   - Errors in BCC1 significantly impact efficiency, as they cause response timeouts, while BCC2 errors require only retransmissions. Higher frame error rate in BCC1 causes an exponential decline in efficiency, while BCC2 errors cause a linear decline.
+2. **Propagation Delay**
+   - Increased propagation delay reduces efficiency exponentially due to longer transmission times for each frame and response.
+3. **Frame Size**
+   - Larger frames improve efficiency by reducing the total number of frames sent, minimizing header overhead. Efficiency plateaus when frame size exceeds the file size.
+4. **Baud Rate**
+   - Higher baud rates increase transmission speed but slightly reduce efficiency in Stop-and-Wait ARQ, as each frame’s transmission time also increases, limiting the protocol’s efficiency gains.
+
+## Results Summary
+
+- BCC1 Errors cause the most significant efficiency reduction due to timeouts, while BCC2 Errors result in a linear decline.
+- Higher Propagation Delays substantially reduce efficiency by prolonging frame exchanges.
+- Larger Frame Sizes improve efficiency, which levels off once frame size exceeds file size.
+- Higher Baud Rates yield slight efficiency declines due to increased frame transmission time.
 
 # Conclusions
 
+This project successfully implemented a data link protocol for communication over a serial port, achieving the primary goal of ensuring reliable data transfer between two systems. 
+A key focus was maintaining strict layer independence, where each layer fulfills its specific responsibilities without influencing the other. 
+The Data Link layer managed communication protocols, error handling, framing, and byte stuffing, while the Application layer accessed these services without knowledge of their underlying processes.
 
+Through this approach, the project reinforced core concepts such as error detection, Stop-and-Wait, and byte stuffing. 
+The separation of concerns between the Application and Data Link layers not only streamlined the protocol's design but also demonstrated the benefits of modular architecture, where one layer’s implementation details do not impact the other.
+
+The successful completion of this project provided valuable practical and theoretical experience in protocol design, deepening our understanding of data link protocols and layered communication systems. 
+Despite challenges posed by remote collaboration, the project met all outlined objectives, contributing to great communication protocols, layer independence, and serial port interactions.
 
 # Appendix - Source Code

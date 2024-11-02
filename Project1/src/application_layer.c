@@ -7,13 +7,15 @@ int framesSent = 0;
 int alarmTotalCount = 0;
 int rejCount = 0;
 extern long fileSize;
-extern time_t delta;
+extern double delta;
 extern int nRej;
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
     LinkLayer connect;
+
+    struct timespec start, end;
 
     connect.baudRate = baudRate;
     connect.nRetransmissions = nTries;
@@ -31,7 +33,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         return;
     }
     printf("Connected\n");
-    time_t start = time(NULL);
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     if (connect.role == LlTx) {
         
@@ -47,7 +50,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fileSize = ftell(file);
         fseek(file, 0, SEEK_SET);
 
-        size_t bytes_to_Read = 700;
+        size_t bytes_to_Read = 990;
         unsigned char buffer[MAX_PAYLOAD_SIZE];
         long fileLength = fileSize;
 
@@ -122,9 +125,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             return;
         }
 
-        // NÃO ESTOU A LER A PARTE DO NOME DO FICHEIRO PORQUE JÁ É PASSADO COMO ARGUMENTO
-        // PODE VIR A REVELAR-SE UM ERRO
-
         FILE *file = fopen(filename, "wb");
         if (file == NULL) {
             printf("Error: Unable to create or open the file %s for writing.\n", filename);
@@ -170,6 +170,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fclose(file);
     }
 
-    delta = difftime(time(NULL), start);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    delta = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     llclose(TRUE); // SHOW STATISTICS
 }

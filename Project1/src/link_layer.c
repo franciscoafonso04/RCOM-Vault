@@ -6,7 +6,7 @@ extern int alarmEnabled, alarmCount, alarmTotalCount, rejCount;
 extern int iFrame;
 extern int framesSent;
 extern long fileSize;
-extern time_t delta;
+extern double delta;
 int timeout, nTries;
 LinkLayerRole role;
 
@@ -311,7 +311,7 @@ int llclose(int showStatistics)
             printf("Number of rejection/repetitions: %d\n", rejCount);
         }
 
-        printf("Total time: %ld seconds\n", delta);
+        printf("Time elapsed: %.3f seconds\n", delta);
     }
 
     return clstat;

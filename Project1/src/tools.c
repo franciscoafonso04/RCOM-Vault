@@ -5,7 +5,7 @@ int alarmCount = 0;
 int iFrame = 0;
 int nRej = 0;
 long fileSize = 0;
-time_t delta = 0;
+double delta = 0;
 extern int alarmTotalCount;
 
 void arrayInsert(unsigned char arr[], int *n, int value, int pos) {

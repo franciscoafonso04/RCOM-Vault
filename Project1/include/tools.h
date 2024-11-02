@@ -13,6 +13,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
+#include <linux/time.h>
+
 
 #define FLAG 0x7E
 
@@ -54,7 +56,7 @@ extern int alarmEnabled;
 extern int alarmCount;
 extern int iFrame;
 extern long fileSize;
-extern time_t delta;
+extern double delta;
 
 void arrayInsert(unsigned char arr[], int *n, int value, int pos);
 
