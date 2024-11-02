@@ -13,8 +13,6 @@
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
-//#include <linux/time.h>
-
 
 #define FLAG 0x7E
 
