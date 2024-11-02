@@ -452,14 +452,11 @@ If `llclose()` is called with `TRUE`, transmission statistics such as bytes sent
 
 # Validation
 
-In order to validate the correctness of our code, we performed various tests:
+In order to validate the correctness of our code, we performed various tests, here are the results:
 
-- Files with different sizes
-- Transmission of different sized packets
-- Transmission with different baud rates
-- Artificially manipulated byte error rates
-- Transmission interrupted at various stages
-- Simulated propagation delay
+## Files with different sizes
+## Transmission of different sized packets
+## Transmission with different baud rates
 
 | Baud rate | Time elapsed (s) |
 | --------- | ---------------- |
@@ -470,6 +467,10 @@ In order to validate the correctness of our code, we performed various tests:
 | 38400     | 3                |
 | 57600     | 2                |
 | 115200    | 1                |
+
+## Artificially manipulated byte error rates
+## Transmission interrupted at various stages
+## Simulated propagation delay
 
 All of the tests were successfully completed.
 
