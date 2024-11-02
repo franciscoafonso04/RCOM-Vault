@@ -455,24 +455,81 @@ If `llclose()` is called with `TRUE`, transmission statistics such as bytes sent
 In order to validate the correctness of our code, we performed various tests, here are the results:
 
 ## Files with different sizes
-## Transmission of different sized packets
-## Transmission with different baud rates
 
-| Baud rate | Time elapsed (s) |
-| --------- | ---------------- |
-| 2400      | 47               |
-| 4800      | 24               |
-| 9600      | 11               |
-| 19200     | 6                |
-| 38400     | 3                |
-| 57600     | 2                |
-| 115200    | 1                |
+Baudrate: 115200
+Packet Size: 700
+
+| File Size (byte) | Time (s) | T Frame (bit/s) | Efficiency |
+| ---------------- | -------- | --------------- | ---------- |
+| 1650             | 0,153    | 86274           | 74,89%     |
+| 10968            | 0,984    | 89170           | 77,40%     |
+| 20832            | 1,868    | 89216           | 77,44%     |
+| 75076            | 6,713    | 89469           | 77,66%     |
+| 502549           | 44,831   | 89678           | 77,85%     |
+
+The results show that as the file size increases, the efficiency of the data link protocol stabilizes around 77-78%. 
+This suggests that larger files experience less variation in efficiency, likely due to reduced overhead per byte transmitted in larger datasets.
+
+## Transmission of different sized packets
+
+Baudrate: 19200
+
+| Frame Size (byte) | Time (s) | T Frame (bit/s) | Efficiency |
+| ----------------- | -------- | --------------- | ---------- |
+| 128               | 6,452    | 13599           | 70,83%     |
+| 256               | 6,114    | 14351           | 74,74%     |
+| 512               | 5,953    | 14739           | 76,77%     |
+| 700               | 5,903    | 14864           | 77,42%     |
+
+The test demonstrates that increasing packet size improves efficiency, reaching a peak efficiency of around 77.42% at 700 bytes. 
+Larger packets reduce the number of headers needed, which minimizes overhead and maximizes data transmission within each frame.
+
+## Transmission with different baudrates
+
+Packet Size: 700
+
+| Baudrate (bit/s) | Time (s) | T Frame (bit/s) | Efficiency |
+| ---------------- | -------- | --------------- | ---------- |
+| 2400             | 47,225   | 1857            | 77,38%     |
+| 4800             | 23,613   | 3715            | 77,40%     |
+| 9600             | 11,806   | 7432            | 77,42%     |
+| 19200            | 5,903    | 14864           | 77,42%     |
+| 38400            | 2,952    | 29723           | 77,40%     |
+| 57600            | 1,968    | 44585           | 77,40%     |
+| 115200           | 0,984    | 89170           | 77,40%     |
+
+The efficiency remains consistently around 77.4% across all baudrates, indicating that the baudrate does not significantly impact efficiency for a fixed packet size. 
+However, higher baudrates reduce transmission time, increasing data throughput.
 
 ## Artificially manipulated byte error rates
-## Transmission interrupted at various stages
+
+Baudrate: 19200
+Packet Size: 700
+
+| Byte Error Rate | Time (s) | T Frame (bit/s) | Efficiency |
+| --------------- | -------- | --------------- | ---------- |
+| 0,00001         | 6,091    | 14405           | 75,03%     |
+| 0,00005         | 7,713    | 11376           | 59,25%     |
+| 0,0001          | 11,674   | 7516            | 39,15%     |
+
+As the byte error rate increases, efficiency drops sharply from 75.03% to 39.15%. 
+This reflects the protocol’s need to retransmit corrupted frames, which leads to increased transmission time and a significant reduction in overall efficiency with higher error rates.
+
 ## Simulated propagation delay
 
-All of the tests were successfully completed.
+Baudrate: 19200
+Packet Size: 700
+
+| Propagation Delay (usec) | Time (s) | T Frame (bit/s) | Efficiency |
+| ------------------------ | -------- | --------------- | ---------- |
+| 0                        | 5,903    | 14864           | 77,42%     |
+| 1041                     | 5,941    | 14769           | 76,92%     |
+| 9895                     | 6,26     | 14016           | 73,00%     |
+| 99999                    | 9,503    | 9233            | 48,09%     |
+| 999999                   | 41,903   | 2093            | 10,90%     |
+
+Increasing propagation delay has a marked effect on efficiency, which decreases from 77.42% to 10.9% as delay increases. 
+This demonstrates that longer propagation delays lead to greater transmission times and reduced efficiency, as the protocol’s Stop & Wait mechanism requires additional time for acknowledgments.
 
 # Data Link Protocol Efficiency
 
@@ -485,20 +542,20 @@ Frames and acknowledgments are numbered to distinguish between new transmissions
 ## Key Factors Affecting Efficiency
 
 1. **Frame Error Rate**
-   - Errors in BCC1 significantly impact efficiency, as they cause response timeouts, while BCC2 errors require only retransmissions. Higher frame error rate in BCC1 causes an exponential decline in efficiency, while BCC2 errors cause a linear decline.
+   - Errors detected in BCC1, which handle integrity checks, reduce efficiency dramatically as they trigger timeouts that halt transmission until acknowledgment. In contrast, errors in BCC2, which merely prompt retransmissions, cause efficiency to decline more gradually.
 2. **Propagation Delay**
-   - Increased propagation delay reduces efficiency exponentially due to longer transmission times for each frame and response.
+   - Extended propagation delays lead to longer response times and thus reduce overall efficiency, as each frame exchange consumes more time, amplifying the impact of each additional delay.
 3. **Frame Size**
-   - Larger frames improve efficiency by reducing the total number of frames sent, minimizing header overhead. Efficiency plateaus when frame size exceeds the file size.
+   - Larger frame sizes enhance efficiency by reducing the number of required frames, which lowers the frequency of header processing and minimizes protocol overhead. Efficiency gains level off when frame size exceeds the total data size, as further increases provide diminishing returns.
 4. **Baud Rate**
-   - Higher baud rates increase transmission speed but slightly reduce efficiency in Stop-and-Wait ARQ, as each frame’s transmission time also increases, limiting the protocol’s efficiency gains.
+   - While higher baud rates increase transmission speed, they do not proportionally increase efficiency due to the Stop & Wait mechanism, which inherently limits performance gains. Thus, efficiency remains largely unaffected by baud rate changes.
 
 ## Results Summary
 
-- BCC1 Errors cause the most significant efficiency reduction due to timeouts, while BCC2 Errors result in a linear decline.
-- Higher Propagation Delays substantially reduce efficiency by prolonging frame exchanges.
-- Larger Frame Sizes improve efficiency, which levels off once frame size exceeds file size.
-- Higher Baud Rates yield slight efficiency declines due to increased frame transmission time.
+- BCC1 Errors lead to the most significant efficiency loss due to timeouts, contrasting with BCC2 Errors, which result in a more linear efficiency decline.
+- Propagation Delays greatly impact efficiency by extending transmission times for each frame exchange.
+- Larger Frame Sizes effectively improve efficiency by reducing overhead, with gains tapering off when frame size exceeds the data size.
+- Higher Baud Rates increase transmission speed but have a minimal effect on efficiency in Stop & Wait, as protocol constraints limit performance scalability.
 
 # Conclusions
 
@@ -506,10 +563,8 @@ This project successfully implemented a data link protocol for communication ove
 A key focus was maintaining strict layer independence, where each layer fulfills its specific responsibilities without influencing the other. 
 The Data Link layer managed communication protocols, error handling, framing, and byte stuffing, while the Application layer accessed these services without knowledge of their underlying processes.
 
-Through this approach, the project reinforced core concepts such as error detection, Stop-and-Wait, and byte stuffing. 
+Through this approach, the project reinforced core concepts such as error detection, Stop & Wait, and byte stuffing. 
 The separation of concerns between the Application and Data Link layers not only streamlined the protocol's design but also demonstrated the benefits of modular architecture, where one layer’s implementation details do not impact the other.
 
 The successful completion of this project provided valuable practical and theoretical experience in protocol design, deepening our understanding of data link protocols and layered communication systems. 
 Despite challenges posed by remote collaboration, the project met all outlined objectives, contributing to great communication protocols, layer independence, and serial port interactions.
-
-# Appendix - Source Code

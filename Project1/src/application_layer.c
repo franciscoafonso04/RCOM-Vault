@@ -50,7 +50,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fileSize = ftell(file);
         fseek(file, 0, SEEK_SET);
 
-        size_t bytes_to_Read = 990;
+        size_t bytes_to_Read = 700;
         unsigned char buffer[MAX_PAYLOAD_SIZE];
         long fileLength = fileSize;
 

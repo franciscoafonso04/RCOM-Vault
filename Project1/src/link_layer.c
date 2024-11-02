@@ -2,7 +2,8 @@
 
 #include "state_machines.h"
 
-extern int alarmEnabled, alarmCount, alarmTotalCount, rejCount;
+extern int alarmEnabled, alarmCount, alarmTotalCount;
+extern int rejCount;
 extern int iFrame;
 extern int framesSent;
 extern long fileSize;
@@ -40,7 +41,7 @@ int llopen(LinkLayer connectionParameters)
     State state = START_S;
 
     // Main loop to handle state transitions
-    while (state != STOP_S) {
+    while (state != STOP_S && alarmCount < nTries) {
 
         // Transmission block for transmitter role
         if (alarmEnabled == FALSE && role == LlTx) {
@@ -65,12 +66,12 @@ int llopen(LinkLayer connectionParameters)
 
         // Call state machine and track state
         openStateMachine(&state, buf, role);
+    }
 
-        // Check if the number of retries has exceeded the limit
-        if (alarmCount >= nTries) {
-            perror("Reached limit of retransmissions\n");
-            return -1;
-        }
+    // Check if the number of retries has exceeded the limit
+    if (alarmCount >= nTries) {
+        printf("Reached limit of retransmissions\n");
+        return -1;
     }
 
     // Respond with UA if role is LlRx (receiver)

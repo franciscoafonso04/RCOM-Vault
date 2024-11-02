@@ -254,8 +254,10 @@ int readStateMachine(unsigned char *packet) {
         }
     }
 
+
     // Verify if iFrame matches the received control field (ans)
-    if ((iFrame == 1 && res != 0x80) || (iFrame == 0 && res != 0x00)) {
+    if ((iFrame == 1 && res != C_I1) || (iFrame == 0 && res != C_I0)) {
+        printf("iFrame: %d, res: 0x%02X\n", iFrame, res);
         return -1;
     }
 
