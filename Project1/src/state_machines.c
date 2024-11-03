@@ -307,116 +307,138 @@ int readStateMachine(unsigned char *packet) {
 
 
 unsigned char discStateMachine() {
-    alarmEnabled = TRUE;
-    State state = START_S;
-    unsigned char buf[5] = {0};
+    alarmEnabled = TRUE;                   // Enable alarm for timeouts
+    State state = START_S;                 // Initialize state to START_S
+    unsigned char buf[5] = {0};            // Buffer to store received bytes
 
     while (state != STOP_S) {
-        // Read a byte from the serial port
+        // Read a byte from the serial port and continue if no data is received
         int byte = readByteSerialPort(buf);
         if (byte == 0) continue;
 
+        // State transitions based on received byte
         switch (state) {
             case START_S:
+                // Wait for starting FLAG byte to indicate beginning of frame
                 if (buf[0] == FLAG) { 
                     state = FLAG_RCV_S;
                 }
                 break;
+
             case FLAG_RCV_S:
+                // Expect address byte (A_TX) after the FLAG
                 if (buf[0] == A_TX) {
                     state = A_RCV_S;
                 } else if (buf[0] == FLAG) {
+                    // If FLAG is received again, remain in FLAG_RCV_S
                     state = FLAG_RCV_S;
                 } else {
+                    // Reset to START_S for any other byte
                     state = START_S;
                 }
                 break;
+
             case A_RCV_S:
+                // Expect DISC control byte to proceed
                 if (buf[0] == C_DISC) {
                     state = C_RCV_S;
                 } else if (buf[0] == FLAG) {
+                    // Loop back to FLAG_RCV_S if FLAG is received
                     state = FLAG_RCV_S;
                 } else {
-                    state = START_S;
+                    state = START_S;       // Reset if unexpected byte
                 }
                 break;
+
             case C_RCV_S:
+                // Validate BCC1 by checking if it matches XOR of address and control
                 if (buf[0] == (A_TX ^ C_DISC)) {
-                    state = BCC_OK_S;
+                    state = BCC_OK_S;      // BCC is valid, proceed to next state
                 } else if (buf[0] == FLAG) {
-                    state = FLAG_RCV_S;
+                    state = FLAG_RCV_S;    // FLAG received, return to FLAG_RCV_S
                 } else {
-                    state = START_S;
+                    state = START_S;       // Reset if BCC1 check fails
                 }
                 break;
+
             case BCC_OK_S:
+                // Expect the closing FLAG to confirm end of DISC frame
                 if (buf[0] == FLAG) {
-                    alarm(0);
-                    return 0;
+                    alarm(0);              // Disable the alarm upon successful frame reception
+                    return 0;              // Return 0 indicating successful DISC processing
                 } else {
-                    state = START_S;
+                    state = START_S;       // Reset to START_S if end FLAG is not received
                 }
                 break;
+
             default:
                 printf("Unknown state encountered.\n");
                 break;
         }
     }
-    return 1;
+    return 1;                              // Return 1 if DISC processing fails or times out
 }
 
 
 unsigned char uaStateMachine() {
-    State state = START_S;
-    unsigned char buf[5] = {0};
+    State state = START_S;                 // Initialize state to START_S
+    unsigned char buf[5] = {0};            // Buffer to hold received bytes
 
     while (state != STOP_S) {
-        // Returns after 5 chars have been input
+        // Read a byte from the serial port, continue if no data received
         int byte = readByteSerialPort(buf);
         if (byte == 0) continue;
 
+        // Handle each state transition based on the received byte
         switch (state) {
             case START_S:
+                // Look for start FLAG to indicate beginning of UA frame
                 if (buf[0] == FLAG) {
                     state = FLAG_RCV_S;
                 }
                 break;
 
             case FLAG_RCV_S:
+                // Expect the address byte (A_TX) following FLAG
                 if (buf[0] == A_TX) {
                     state = A_RCV_S;
                 } else if (buf[0] == FLAG) {
+                    // Remain in FLAG_RCV_S if another FLAG is received
                     state = FLAG_RCV_S;
                 } else {
-                    state = START_S;
+                    state = START_S;       // Reset if any other byte is received
                 }
                 break;
 
             case A_RCV_S:
+                // Expect the control byte for UA (C_UA)
                 if (buf[0] == C_UA) {
                     state = C_RCV_S;
                 } else if (buf[0] == FLAG) {
+                    // Return to FLAG_RCV_S if another FLAG is received
                     state = FLAG_RCV_S;
                 } else {
-                    state = START_S;
+                    state = START_S;       // Reset on unexpected byte
                 }
                 break;
 
             case C_RCV_S:
+                // Verify BCC1 (should be XOR of A_TX and C_UA)
                 if (buf[0] == (A_TX ^ C_UA)) {
-                    state = BCC_OK_S;
+                    state = BCC_OK_S;      // BCC is valid, move to next state
                 } else if (buf[0] == FLAG) {
-                    state = FLAG_RCV_S;
+                    state = FLAG_RCV_S;    // Return to FLAG_RCV_S on FLAG
                 } else {
-                    state = START_S;
+                    state = START_S;       // Reset if BCC1 check fails
                 }
                 break;
 
             case BCC_OK_S:
+                // Look for closing FLAG to confirm end of UA frame
                 if (buf[0] == FLAG) {
-                    return 0;
+                    return 0;              // Frame is complete and valid, return success
                 } else {
-                    state = START_S;
+                    state = START_S;       // Reset to START_S if end FLAG not received
                 }
                 break;
 
@@ -426,6 +448,7 @@ unsigned char uaStateMachine() {
         }
     }
 
-    return 1;
+    return 1;                              // Return 1 if UA frame processing fails or times out
 }
+
 
