@@ -129,7 +129,7 @@ unsigned char* writeData(unsigned char* data, int dataSize, int seqNum) {
     buf[0] = P_DATA;                                                // Set packet type to data
     buf[1] = seqNum % 256;                                          // Set the sequence number (mod 256 for wrap-around)
     buf[2] = (dataSize >> 8) & 0xFF;                                // Store the high byte by shifting 8 bits to the right and masking.
-    buf[3] = dataSize & 0xFF;                                       // Stpre the low byte by masking.
+    buf[3] = dataSize & 0xFF;                                       // Store the low byte by masking.
 
     memcpy(buf + 4, data, dataSize);                                // Copy the actual data into the packet
 

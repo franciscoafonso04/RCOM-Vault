@@ -297,7 +297,6 @@ int readStateMachine(unsigned char *packet) {
     // Verify if iFrame matches the received control field (res)
     // This ensures the correct frame has been received
     if ((iFrame == 1 && res != C_I1) || (iFrame == 0 && res != C_I0)) {
-        printf("iFrame: %d, res: 0x%02X\n", iFrame, res);
         return -1;
     }
 
@@ -309,7 +308,7 @@ int readStateMachine(unsigned char *packet) {
 unsigned char discStateMachine() {
     alarmEnabled = TRUE;                   // Enable alarm for timeouts
     State state = START_S;                 // Initialize state to START_S
-    unsigned char buf[5] = {0};            // Buffer to store received bytes
+    unsigned char buf[1] = {0};            // Buffer to store received bytes
 
     while (state != STOP_S) {
         // Read a byte from the serial port and continue if no data is received
@@ -382,7 +381,7 @@ unsigned char discStateMachine() {
 
 unsigned char uaStateMachine() {
     State state = START_S;                 // Initialize state to START_S
-    unsigned char buf[5] = {0};            // Buffer to hold received bytes
+    unsigned char buf[1] = {0};            // Buffer to hold received bytes
 
     while (state != STOP_S) {
         // Read a byte from the serial port, continue if no data received

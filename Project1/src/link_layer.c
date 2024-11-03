@@ -194,7 +194,6 @@ int llread(unsigned char *packet)
 
     // Attempt to read packet with state machine
     int size = readStateMachine(packet);    // Obtain packet size from state machine
-    framesSent++;                           // Increment frame counter
 
     // Check if no data was read
     if (size == 0) {
@@ -203,7 +202,9 @@ int llread(unsigned char *packet)
         return -1;                          // Indicate no data read 
     } 
 
-    else if (size == -1) {
+    framesSent++;                           // Increment frame counter
+
+    if (size == -1) {
         printf("iFrame mismatch with res\n");
         writeResponse(FALSE, iFrame);       // Send REJ due to incorrect iFrame
         rejCount++;                         // Increment rejection counter
@@ -227,9 +228,7 @@ int llread(unsigned char *packet)
         iFrame = !iFrame;                   // Toggle iFrame for the next expected frame
 
         return size;                        // Return size of valid packet data
-    }
-
-    else {
+    } else {
         writeResponse(FALSE, iFrame);       // Send REJ for incorrect BCC2
         rejCount++;                         // Increment rejection counter
         return -1;                          // Indicate error
