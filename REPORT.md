@@ -54,8 +54,8 @@ It is responsible for connecting and disconnecting the two machines, as well as 
 
 ## Link Layer
 
-The Link Layer receives orders from the application layer and executes them.
-It is responsible for applying the Stop & Wait protocol and assuring data is correcly trasnfered between the 2 machines.
+The Link Layer receives and executes orders from the application layer.
+It is responsible for applying the Stop & Wait protocol and assuring data is correcly transfered between the two machines.
 
 # Code Structure
 
@@ -246,10 +246,6 @@ typedef enum {
     BCC_OK_S, // state after receiving BCC byte without error
     STOP_S // final state indicating successful end of reception
 } State;
-```
-
-```c
-// DAS STRUCTURES DA LINK LAYER PARA A FRENTE FOI TUDO COMENTADO PELO CHAT GPT
 ```
 
 # Main use Cases
