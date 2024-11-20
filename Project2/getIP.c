@@ -9,7 +9,7 @@
 #include<arpa/inet.h>
 
 int main(int argc, char *argv[]) {
-    struct hostent *h;
+    struct hostent *host;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <address to get IP address>\n", argv[0]);
@@ -30,13 +30,13 @@ int main(int argc, char *argv[]) {
 
     #define h_addr h_addr_list[0]	The first address in h_addr_list.
 */
-    if ((h = gethostbyname(argv[1])) == NULL) {
+    if ((host = gethostbyname(argv[1])) == NULL) {
         herror("gethostbyname()");
         exit(-1);
     }
 
-    printf("Host name  : %s\n", h->h_name);
-    printf("IP Address : %s\n", inet_ntoa(*((struct in_addr *) h->h_addr)));
+    printf("Host name  : %s\n", host->h_name);
+    printf("IP Address : %s\n", inet_ntoa(*((struct in_addr *) host->h_addr_list[0])));
 
     return 0;
 }
