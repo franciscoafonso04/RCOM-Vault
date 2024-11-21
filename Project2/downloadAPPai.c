@@ -36,26 +36,18 @@ bool parse_ftp_url(const char *url, FtpUrl *parsed_url) {
 
     // Check for valid FTP prefix
     if (strncmp(url, "ftp://", 6) != 0) {
-        fprintf(stderr, "Invalid URL: Must start with ftp://\n");
-        return false;
+        handle_error("Invalid URL: Must start with ftp://");
     }
 
     // Try to parse URL with credentials
-    int credential_parse = sscanf(url, "ftp://%[^:]:%[^@]@%[^/]/%s", 
-                                  parsed_url->username, 
-                                  parsed_url->password, 
-                                  parsed_url->hostname, 
-                                  parsed_url->resource_path);
+    int credential_parse = sscanf(url, "ftp://%[^:]:%[^@]@%[^/]/%s", parsed_url->username, parsed_url->password, parsed_url->hostname, parsed_url->resource_path);
 
     // If no credentials, use anonymous login
     if (credential_parse != 4) {
-        credential_parse = sscanf(url, "ftp://%[^/]/%s", 
-                                  parsed_url->hostname, 
-                                  parsed_url->resource_path);
+        credential_parse = sscanf(url, "ftp://%[^/]/%s", parsed_url->hostname, parsed_url->resource_path);
         
         if (credential_parse != 2) {
-            fprintf(stderr, "Invalid FTP URL format\n");
-            return false;
+            handle_error("Invalid FTP URL format");
         }
 
         // Set default anonymous credentials
@@ -79,24 +71,22 @@ bool parse_ftp_url(const char *url, FtpUrl *parsed_url) {
     }
 
     // Convert IP to string
-    inet_ntop(AF_INET, host->h_addr_list[0], parsed_url->ip_address, sizeof(parsed_url->ip_address));
+    strcpy(parsed_url->ip_address, inet_ntoa(*((struct in_addr *) host->h_addr_list[0])));
 
     return true;
 }
 
 // More robust socket creation
 int create_socket(const char *ip, int port) {
+    struct sockaddr_in server_addr;
+    bzero((char *) &server_addr, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(ip);   
+    server_addr.sin_port = htons(port);
+
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         handle_error("Socket creation failed");
-    }
-
-    struct sockaddr_in server_addr = {0};
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-
-    if (inet_pton(AF_INET, ip, &server_addr.sin_addr) <= 0) {
-        handle_error("Invalid IP address");
     }
 
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
