@@ -149,18 +149,24 @@ void activate_passive_mode(int sockfd, char *passive_ip, int *passive_port) {
         handle_error("Failed to read PASV response");
     }
 
+    // Debug: Print the PASV response
+    printf("PASV Response: %s\n", buffer);
+
     // Parse PASV response
-    if (sscanf(buffer, "%d (%d,%d,%d,%d,%d,%d)", 
-               &response_code, &byte1, &byte2, &byte3, &byte4, &byte5, &byte6) != 7 
-        || response_code != 227) {
-        fprintf(stderr, "Passive mode failed: %s\n", buffer);
+    if (sscanf(buffer, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)",
+               &byte1, &byte2, &byte3, &byte4, &byte5, &byte6) != 6) {
+        fprintf(stderr, "Failed to parse PASV response: %s\n", buffer);
         exit(EXIT_FAILURE);
     }
 
     // Construct IP and calculate port
     snprintf(passive_ip, MAX_URL_LENGTH, "%d.%d.%d.%d", byte1, byte2, byte3, byte4);
     *passive_port = (byte5 * 256) + byte6;
+
+    // Debug: Print parsed IP and port
+    printf("Passive IP: %s, Passive Port: %d\n", passive_ip, *passive_port);
 }
+
 
 // Main download function with improved error handling
 void download_file(int control_socket, int data_socket, const char *filename) {
