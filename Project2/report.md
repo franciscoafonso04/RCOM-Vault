@@ -60,3 +60,36 @@ Looking at the "Length" field in the Ethernet frame header, which specifies the 
 
 7. What is the loopback interface, and why is it important?
 The loopback interface (commonly associated with the IP address 127.0.0.1) is a virtual interface used for testing and diagnostics on the same device. It ensures that the IP stack is correctly configured and functioning without requiring external network connectivity.
+
+---
+
+## Experience 2
+
+1. How to configure bridgeY0?
+
+To configure bridgeY0 on the Mikrotik switch:
+
+Create the bridge using the following command:
+
+```/interface bridge add name=bridgeY0```
+
+Add ports to the bridge:
+
+```/interface bridge port add bridge=bridgeY0 interface=<port>```
+
+Replace <port> with the actual port number, e.g., ether1, ether2.
+
+Verify the bridge and its ports:
+
+```
+/interface bridge print
+/interface bridge port print
+```
+
+2. How many broadcast domains are there? How can you conclude it from the logs?
+
+Number of Broadcast Domains: The number of broadcast domains corresponds to the number of bridges configured. In this case, there are two broadcast domains: one for bridgeY0 and another for bridgeY1.
+
+Conclusion from Logs:
+Examine the logs captured during the broadcast ping test (ping -b) on both tuxY3 and tuxY2.
+Packets in each domain will only reach devices connected to that specific bridge. This isolation confirms the presence of separate broadcast domains.
