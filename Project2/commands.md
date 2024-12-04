@@ -1,10 +1,10 @@
-# Commands to run when we get to the lab
+# Commands to run when we get to the lab - bancada 11
 
 ## Cabos
 
-- gnu22 -> ether4
-- gnu23 -> ether5
-- gnu24 -> ether6
+- gnu62 -> ether12
+- gnu63 -> ether5
+- gnu64 -> ether6
 
 ## TUX3
 
@@ -13,22 +13,22 @@
 systemctl restart networking
 
 // configurar a conexão
-sudo ifconfig eth1 172.16.100.1 netmask 255.255.255.0 up
+sudo ifconfig eth1 172.16.110.1 netmask 255.255.255.0 up
 
-sudo route add default gw 172.16.100.254 eth1
+sudo route add default gw 172.16.110.254 eth1
 
 // verificar se correu bem
 ifconfig eth1
 
 route -n
 
-ping 172.16.100.254
+ping 172.16.110.254
 
 // ler ip e mac address
 ifconfig eth1
 
-// registar ip e mac address to TUX4
-sudo arp -s 172.16.100.254 <MAC:ADDR:TUX4>
+// registar ip e mac address do TUX4
+sudo arp -s 172.16.110.254 00:08:54:71:73:ed
 
 // verificar se correu bem
 arp -n
@@ -46,22 +46,22 @@ ping 172.16.101.1   // TUX 2
 systemctl restart networking
 
 // configurar a conexão
-sudo ifconfig eth1 172.16.100.254 netmask 255.255.255.0 up
+sudo ifconfig eth1 172.16.110.254 netmask 255.255.255.0 up
 
-sudo route add default gw 172.16.100.1 eth1
+sudo route add default gw 172.16.110.1 eth1
 
 // verificar se correu bem
 ifconfig eth1
 
 route -n
 
-ping 172.16.100.1
+ping 172.16.110.1
 
 // ler ip e mac address
 ifconfig eth1
 
-// registar ip e mac address to TUX3
-sudo arp -s 172.16.100.1 <MAC:ADDR:TUX3>
+// registar ip e mac address do TUX3
+sudo arp -s 172.16.110.1   00:08:54:50:35:0a
 
 // verificar se correu bem
 arp -n
@@ -74,16 +74,13 @@ arp -n
 systemctl restart networking
 
 // configurar a conexão
-sudo ifconfig eth1 172.16.101.1 netmask 255.255.255.0 up
-
-sudo route add default gw 172.16.101.254      // o chatgpt diz para fazer isto, not sure tho
-sudo route add default gw 172.16.101.254 eth1 // talvez isto seja um pouco melhor?
+ifconfig eth1 172.16.111.1 netmask 255.255.255.0 up
 
 // ler ip e mac address
 ifconfig eth1
 
 // registar ip e mac address
-sudo arping -I eth1 172.16.101.254 // sugestão do chat gpt once again
+arping -I eth1 172.16.101.254 // sugestão do chat gpt once again
 ```
 
 ## GTKTERM
@@ -116,3 +113,7 @@ Para aceder o terminal do GTKTerm (TUX2) devemos:
 /interface bridge port add bridge=bridge100 interface=ether5
 /interface bridge port add bridge=bridge100 interface=ether6
 ```
+
+TUX2 172.16.111.1   00:c0:df:08:d5:98
+TUX3 172.16.110.1   00:08:54:50:35:0a
+TUX4 172.16.110.254 00:08:54:71:73:ed
