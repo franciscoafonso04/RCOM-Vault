@@ -76,6 +76,12 @@ bool parse_ftp_url(const char *url, FtpUrl *parsed_url) {
     return true;
 }
 
+void cleanup_and_exit(int control_socket, int data_socket) {
+    if (control_socket >= 0) close(control_socket);
+    if (data_socket >= 0) close(data_socket);
+    exit(EXIT_FAILURE);
+}
+
 // More robust socket creation
 int create_socket(const char *ip, int port) {
     struct sockaddr_in server_addr;
@@ -114,7 +120,7 @@ void ftp_login(int sockfd, const char* username, const char* password) {
     
     if (sscanf(buffer, "%d", &response_code) != 1 || response_code != 331) {
         fprintf(stderr, "Username error: %s\n", buffer);
-        exit(EXIT_FAILURE);
+        cleanup_and_exit(sockfd, -1);
     }
 
     // Send password
@@ -130,7 +136,7 @@ void ftp_login(int sockfd, const char* username, const char* password) {
 
     if (sscanf(buffer, "%d", &response_code) != 1 || response_code != 230) {
         fprintf(stderr, "Login failed: %s\n", buffer);
-        exit(EXIT_FAILURE);
+        cleanup_and_exit(sockfd, -1);
     }
 }
 
@@ -139,33 +145,29 @@ void activate_passive_mode(int sockfd, char *passive_ip, int *passive_port) {
     char buffer[MAX_BUFFER_SIZE];
     int response_code, byte1, byte2, byte3, byte4, byte5, byte6;
 
-    // Send PASV command
-    if (write(sockfd, "PASV\r\n", 6) < 0) {
-        handle_error("Failed to send PASV command");
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        if (write(sockfd, "PASV\r\n", 6) < 0) {
+            handle_error("Failed to send PASV command");
+        }
+
+        if (read(sockfd, buffer, sizeof(buffer)) < 0) {
+            handle_error("Failed to read PASV response");
+        }
+
+        if (sscanf(buffer, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)",
+                   &byte1, &byte2, &byte3, &byte4, &byte5, &byte6) == 6) {
+            snprintf(passive_ip, MAX_URL_LENGTH, "%d.%d.%d.%d", byte1, byte2, byte3, byte4);
+            *passive_port = (byte5 * 256) + byte6;
+            printf("Passive IP: %s, Passive Port: %d\n", passive_ip, *passive_port);
+            return;
+        } else {
+            fprintf(stderr, "Retrying PASV due to parsing failure: %s\n", buffer);
+        }
     }
 
-    // Read PASV response
-    if (read(sockfd, buffer, sizeof(buffer)) < 0) {
-        handle_error("Failed to read PASV response");
-    }
-
-    // Debug: Print the PASV response
-    printf("PASV Response: %s\n", buffer);
-
-    // Parse PASV response
-    if (sscanf(buffer, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)",
-               &byte1, &byte2, &byte3, &byte4, &byte5, &byte6) != 6) {
-        fprintf(stderr, "Failed to parse PASV response: %s\n", buffer);
-        exit(EXIT_FAILURE);
-    }
-
-    // Construct IP and calculate port
-    snprintf(passive_ip, MAX_URL_LENGTH, "%d.%d.%d.%d", byte1, byte2, byte3, byte4);
-    *passive_port = (byte5 * 256) + byte6;
-
-    // Debug: Print parsed IP and port
-    printf("Passive IP: %s, Passive Port: %d\n", passive_ip, *passive_port);
+    handle_error("Failed to activate passive mode after retries");
 }
+
 
 
 // Main download function with improved error handling
@@ -197,8 +199,15 @@ void download_file(int control_socket, int data_socket, const char *filename) {
 
     if (sscanf(response, "%d", &response_code) != 1 || response_code != 226) {
         fprintf(stderr, "Download failed: %s\n", response);
-        exit(EXIT_FAILURE);
+        cleanup_and_exit(control_socket, data_socket);
     }
+}
+
+void ftp_quit(int sockfd) {
+    if (write(sockfd, "QUIT\r\n", 6) < 0) {
+        fprintf(stderr, "Failed to send QUIT command\n");
+    }
+    close(sockfd);
 }
 
 int main(int argc, char *argv[]) {
@@ -268,8 +277,7 @@ int main(int argc, char *argv[]) {
     download_file(control_socket, data_socket, url.filename);
 
     // Close connections
-    write(control_socket, "QUIT\r\n", 6);
-    close(control_socket);
+    ftp_quit(control_socket); 
     close(data_socket);
 
     printf("File downloaded successfully: %s\n", url.filename);

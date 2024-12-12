@@ -20,6 +20,8 @@
 4. Conectar `tuxY4 E2` a `Switch ether10`
 5. Conectar `tuxY3 S0` a `RS232 -> cisco`
 6. Conectar `MTIK Switch Console` a `cisco -> RS232`
+7. Conectar `Router MTIK ether1` a `PY.12`
+8. Conectar `Router MTIK ether2` a `Switch MTIK ether11`
 
 ### tuxY3
 
@@ -107,8 +109,6 @@ route add -net 172.16.Y1.0/24 gw 172.16.Y0.254
 
 1. Desconectar `Switch MTIK Console` de `cisco -> RS232`
 2. Conectar `Router MTIK` a `cisco -> RS232`
-3. Conectar `Router MTIK ether1` a `PY.12`
-4. Conectar `Router MTIK ether2` a `Switch MTIK ether11`
 
 
 ### MicroTik Router
