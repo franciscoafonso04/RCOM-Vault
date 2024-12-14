@@ -13,7 +13,6 @@
 #define MAX_BUFFER_SIZE 1024
 #define MAX_URL_LENGTH 500
 
-// Improved URL structure with more descriptive naming
 typedef struct {
     char hostname[MAX_URL_LENGTH];
     char resource_path[MAX_URL_LENGTH];
@@ -23,17 +22,22 @@ typedef struct {
     char password[MAX_URL_LENGTH];
 } ftpURL;
 
-// Improved error handling function
-void handle_error(const char* message) {
-    fprintf(stderr, "Error: %s - %s\n", message, strerror(errno));
+void rushed_exit(int control_socket, int data_socket, const char *message) {
+    if (message) fprintf(stderr, "Error: %s - %s\n", message, strerror(errno));
+
+    if (control_socket >= 0) close(control_socket);
+    if (data_socket >= 0) close(data_socket);
+
     exit(EXIT_FAILURE);
 }
 
-void cleanup_and_exit(int control_socket, int data_socket) {
-    if (control_socket >= 0) close(control_socket);
-    if (data_socket >= 0) close(data_socket);
-    exit(EXIT_FAILURE);
+void graceful_exit(int control_socket) {
+    if (write(control_socket, "QUIT\r\n", 6) < 0) {
+        fprintf(stderr, "Failed to send QUIT command\n");
+    }
+    close(control_socket);
 }
+
 
 // Improved URL parsing with more robust checks
 bool parse_ftp_url(const char *url, ftpURL *parsed_url) {
@@ -42,7 +46,7 @@ bool parse_ftp_url(const char *url, ftpURL *parsed_url) {
 
     // Check for valid FTP prefix
     if (strncmp(url, "ftp://", 6) != 0) {
-        handle_error("Invalid URL: Must start with ftp://");
+        rushed_exit(-1, -1, "Invalid URL: Must start with ftp://");
     }
 
     // Try to parse URL with credentials
@@ -53,7 +57,7 @@ bool parse_ftp_url(const char *url, ftpURL *parsed_url) {
         credential_parse = sscanf(url, "ftp://%[^/]/%s", parsed_url->hostname, parsed_url->resource_path);
         
         if (credential_parse != 2) {
-            handle_error("Invalid FTP URL format");
+            rushed_exit(-1, -1, "Invalid FTP URL format");
         }
 
         // Set default anonymous credentials
@@ -82,6 +86,7 @@ bool parse_ftp_url(const char *url, ftpURL *parsed_url) {
     return true;
 }
 
+
 // More robust socket creation
 int create_socket(const char *ip, int port) {
     struct sockaddr_in server_addr;
@@ -92,66 +97,66 @@ int create_socket(const char *ip, int port) {
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        handle_error("Socket creation failed");
+        rushed_exit(-1, -1, "Socket creation failed");
     }
 
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        handle_error("Connection failed");
+    if (connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
+        rushed_exit(-1, -1, "Connection failed");
     }
 
     return sockfd;
 }
 
+
 // Improved login function with better error checking
-void ftp_login(int sockfd, const char* username, const char* password) {
+void ftp_login(int control_socket, const char* username, const char* password) {
     char buffer[MAX_BUFFER_SIZE];
     int response_code;
 
     // Send username
     snprintf(buffer, sizeof(buffer), "USER %s\r\n", username);
-    if (write(sockfd, buffer, strlen(buffer)) < 0) {
-        handle_error("Failed to send username");
+    if (write(control_socket, buffer, strlen(buffer)) < 0) {
+        rushed_exit(control_socket, -1, "Failed to send username");
     }
 
     // Read username response
-    if (read(sockfd, buffer, sizeof(buffer)) < 0) {
-        handle_error("Failed to read username response");
+    if (read(control_socket, buffer, sizeof(buffer)) < 0) {
+        rushed_exit(control_socket, -1, "Failed to read username response");
     }
     
     if (sscanf(buffer, "%d", &response_code) != 1 || response_code != 331) {
-        fprintf(stderr, "Username error: %s\n", buffer);
-        cleanup_and_exit(sockfd, -1);
+        rushed_exit(control_socket, -1, buffer);
     }
 
     // Send password
     snprintf(buffer, sizeof(buffer), "PASS %s\r\n", password);
-    if (write(sockfd, buffer, strlen(buffer)) < 0) {
-        handle_error("Failed to send password");
+    if (write(control_socket, buffer, strlen(buffer)) < 0) {
+        rushed_exit(control_socket, -1, "Failed to send password");
     }
 
     // Read password response
-    if (read(sockfd, buffer, sizeof(buffer)) < 0) {
-        handle_error("Failed to read password response");
+    if (read(control_socket, buffer, sizeof(buffer)) < 0) {
+        rushed_exit(control_socket, -1, "Failed to read password response");
     }
 
     if (sscanf(buffer, "%d", &response_code) != 1 || response_code != 230) {
-        fprintf(stderr, "Login failed: %s\n", buffer);
-        cleanup_and_exit(sockfd, -1);
+        rushed_exit(control_socket, -1, buffer);
     }
 }
 
+
 // More robust passive mode activation
-void activate_passive_mode(int sockfd, char *passive_ip, int *passive_port) {
+void activate_passive_mode(int control_socket, char *passive_ip, int *passive_port) {
     char buffer[MAX_BUFFER_SIZE];
     int response_code, byte1, byte2, byte3, byte4, byte5, byte6;
 
     for (int attempt = 0; attempt < 3; ++attempt) {
-        if (write(sockfd, "PASV\r\n", 6) < 0) {
-            handle_error("Failed to send PASV command");
+        if (write(control_socket, "PASV\r\n", 6) < 0) {
+            rushed_exit(control_socket, -1, "Failed to send PASV command");
         }
 
-        if (read(sockfd, buffer, sizeof(buffer)) < 0) {
-            handle_error("Failed to read PASV response");
+        if (read(control_socket, buffer, sizeof(buffer)) < 0) {
+            rushed_exit(control_socket, -1, "Failed to read PASV response");
         }
 
         if (sscanf(buffer, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)",
@@ -165,58 +170,49 @@ void activate_passive_mode(int sockfd, char *passive_ip, int *passive_port) {
         }
     }
 
-    handle_error("Failed to activate passive mode after retries");
+    rushed_exit(control_socket, -1, "Failed to activate passive mode after retries");
 }
-
 
 
 // Main download function with improved error handling
 void download_file(int control_socket, int data_socket, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file) {
-        handle_error("Unable to create local file");
+        rushed_exit(control_socket, data_socket, "Unable to create local file");
     }
 
     char buffer[MAX_BUFFER_SIZE];
     ssize_t bytes_read;
 
     // Download file in chunks
-    while ((bytes_read = read(data_socket, buffer, sizeof(buffer))) >= 0) {
-        if (bytes_read == 0) break; // End of file
+    while ((bytes_read = read(data_socket, buffer, sizeof(buffer))) > 0) {
         if (fwrite(buffer, 1, bytes_read, file) != (size_t)bytes_read) {
-            handle_error("File write failed");
+            fclose(file);
+            rushed_exit(control_socket, data_socket, "Failed to write to the file properly");
         }
     }
-
     if (bytes_read < 0) {
-        handle_error("Error reading from data socket");
+        fclose(file);
+        rushed_exit(control_socket, data_socket, "read() function returned an error");
     }
 
     fclose(file);
+    close(data_socket);  // Close data socket after file transfer
 
     // Verify download completion
     char response[MAX_BUFFER_SIZE];
     int response_code;
 
-    // Attempt to read completion response with timeout
-    if (read(control_socket, response, sizeof(response)) < 0) {
-        handle_error("Failed to read download completion response");
+    while (read(control_socket, response, sizeof(response)) > 0) {
+        if (sscanf(response, "%d", &response_code) == 1 && response_code == 226) {
+            return;
+        }
     }
 
-    // Check for expected response code
-    if (sscanf(response, "%d", &response_code) != 1 || response_code != 226) {
-        fprintf(stderr, "Download failed: %s\n", response);
-        cleanup_and_exit(control_socket, data_socket);
-    }
-
+    // If we exit the loop without success
+    rushed_exit(control_socket, -1, response);
 }
 
-void ftp_quit(int sockfd) {
-    if (write(sockfd, "QUIT\r\n", 6) < 0) {
-        fprintf(stderr, "Failed to send QUIT command\n");
-    }
-    close(sockfd);
-}
 
 int main(int argc, char *argv[]) {
     // Validate command-line arguments
@@ -245,12 +241,11 @@ int main(int argc, char *argv[]) {
 
     // Initial server connection
     if (read(control_socket, response, sizeof(response)) < 0) {
-        handle_error("Failed to read initial server response");
+        rushed_exit(control_socket, -1, "Failed to read initial server response");
     }
 
     if (sscanf(response, "%d", &response_code) != 1 || response_code != 220) {
-        fprintf(stderr, "Connection failed: %s\n", response);
-        return EXIT_FAILURE;
+        rushed_exit(control_socket, -1, response);
     }
 
     // Login
@@ -268,25 +263,23 @@ int main(int argc, char *argv[]) {
     char request[MAX_BUFFER_SIZE];
     snprintf(request, sizeof(request), "RETR %s\r\n", url.resource_path);
     if (write(control_socket, request, strlen(request)) < 0) {
-        handle_error("Failed to send RETR command");
+        rushed_exit(control_socket, data_socket, "Failed to send RETR command");
     }
 
     // Verify resource request
     if (read(control_socket, response, sizeof(response)) < 0) {
-        handle_error("Failed to read RETR response");
+        rushed_exit(control_socket, data_socket, "Failed to read RETR response");
     }
 
-    if (sscanf(response, "%d", &response_code) != 1 || (response_code != 150 && response_code != 226)) {
-        fprintf(stderr, "Resource request failed: %s\n", response);
-        cleanup_and_exit(control_socket, data_socket);
+    if (sscanf(response, "%d", &response_code) != 1 || (response_code != 150 && response_code != 125)) {
+        rushed_exit(control_socket, data_socket, response);
     }
 
     // Download file
     download_file(control_socket, data_socket, url.filename);
 
     // Close connections
-    ftp_quit(control_socket); 
-    close(data_socket);
+    graceful_exit(control_socket); 
 
     printf("File downloaded successfully: %s\n", url.filename);
     return EXIT_SUCCESS;
