@@ -21,7 +21,7 @@ typedef struct {
     char ip_address[MAX_URL_LENGTH];
     char username[MAX_URL_LENGTH];
     char password[MAX_URL_LENGTH];
-} FtpUrl;
+} ftpURL;
 
 // Improved error handling function
 void handle_error(const char* message) {
@@ -29,10 +29,16 @@ void handle_error(const char* message) {
     exit(EXIT_FAILURE);
 }
 
+void cleanup_and_exit(int control_socket, int data_socket) {
+    if (control_socket >= 0) close(control_socket);
+    if (data_socket >= 0) close(data_socket);
+    exit(EXIT_FAILURE);
+}
+
 // Improved URL parsing with more robust checks
-bool parse_ftp_url(const char *url, FtpUrl *parsed_url) {
+bool parse_ftp_url(const char *url, ftpURL *parsed_url) {
     // Reset all fields
-    memset(parsed_url, 0, sizeof(FtpUrl));
+    memset(parsed_url, 0, sizeof(ftpURL));
 
     // Check for valid FTP prefix
     if (strncmp(url, "ftp://", 6) != 0) {
@@ -74,12 +80,6 @@ bool parse_ftp_url(const char *url, FtpUrl *parsed_url) {
     strcpy(parsed_url->ip_address, inet_ntoa(*((struct in_addr *) host->h_addr_list[0])));
 
     return true;
-}
-
-void cleanup_and_exit(int control_socket, int data_socket) {
-    if (control_socket >= 0) close(control_socket);
-    if (data_socket >= 0) close(data_socket);
-    exit(EXIT_FAILURE);
 }
 
 // More robust socket creation
@@ -181,10 +181,15 @@ void download_file(int control_socket, int data_socket, const char *filename) {
     ssize_t bytes_read;
 
     // Download file in chunks
-    while ((bytes_read = read(data_socket, buffer, sizeof(buffer))) > 0) {
+    while ((bytes_read = read(data_socket, buffer, sizeof(buffer))) >= 0) {
+        if (bytes_read == 0) break; // End of file
         if (fwrite(buffer, 1, bytes_read, file) != (size_t)bytes_read) {
             handle_error("File write failed");
         }
+    }
+
+    if (bytes_read < 0) {
+        handle_error("Error reading from data socket");
     }
 
     fclose(file);
@@ -193,14 +198,17 @@ void download_file(int control_socket, int data_socket, const char *filename) {
     char response[MAX_BUFFER_SIZE];
     int response_code;
 
+    // Attempt to read completion response with timeout
     if (read(control_socket, response, sizeof(response)) < 0) {
         handle_error("Failed to read download completion response");
     }
 
+    // Check for expected response code
     if (sscanf(response, "%d", &response_code) != 1 || response_code != 226) {
         fprintf(stderr, "Download failed: %s\n", response);
         cleanup_and_exit(control_socket, data_socket);
     }
+
 }
 
 void ftp_quit(int sockfd) {
@@ -218,7 +226,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Parse URL
-    FtpUrl url;
+    ftpURL url;
     if (!parse_ftp_url(argv[1], &url)) {
         return EXIT_FAILURE;
     }
@@ -268,9 +276,9 @@ int main(int argc, char *argv[]) {
         handle_error("Failed to read RETR response");
     }
 
-    if (sscanf(response, "%d", &response_code) != 1 || response_code != 150) {
+    if (sscanf(response, "%d", &response_code) != 1 || (response_code != 150 && response_code != 226)) {
         fprintf(stderr, "Resource request failed: %s\n", response);
-        return EXIT_FAILURE;
+        cleanup_and_exit(control_socket, data_socket);
     }
 
     // Download file
