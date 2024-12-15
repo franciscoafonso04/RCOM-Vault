@@ -39,7 +39,6 @@ void graceful_exit(int control_socket) {
 }
 
 
-// Improved URL parsing with more robust checks
 bool parse_ftp_url(const char *url, ftpURL *parsed_url) {
     // Reset all fields
     memset(parsed_url, 0, sizeof(ftpURL));
@@ -106,8 +105,6 @@ int create_socket(const char *ip, int port) {
     return sockfd;
 }
 
-
-// Improved login function with better error checking
 void ftp_login(int control_socket, const char* username, const char* password) {
     char buffer[MAX_BUFFER_SIZE];
     int response_code;
@@ -139,8 +136,6 @@ void ftp_login(int control_socket, const char* username, const char* password) {
     }
 }
 
-
-// More robust passive mode activation
 void activate_passive_mode(int control_socket, char *passive_ip, int *passive_port) {
     char buffer[MAX_BUFFER_SIZE];
     int response_code, byte1, byte2, byte3, byte4, byte5, byte6;
@@ -167,8 +162,6 @@ void activate_passive_mode(int control_socket, char *passive_ip, int *passive_po
     rushed_exit(control_socket, -1, "Failed to activate passive mode after retries");
 }
 
-
-// Main download function with improved error handling
 void download_file(int control_socket, int data_socket, const char *filename) {
     FILE *file = fopen(filename, "wb");
     if (!file) {
