@@ -149,24 +149,41 @@ void ftp_login(int control_socket, const char* username, const char* password) {
 void activate_passive_mode(int control_socket, char *passive_ip, int *passive_port) {
     char buffer[MAX_BUFFER_SIZE];
     int response_code, byte1, byte2, byte3, byte4, byte5, byte6;
-
-    for (int attempt = 0; attempt < 3; ++attempt) {
+    
+    for (int attempt = 0; attempt < 5; ++attempt) {
+        // Send PASV command
         if (write(control_socket, "PASV\r\n", 6) < 0) {
             rushed_exit(control_socket, -1, "Failed to send PASV command");
         }
-
-        if (read(control_socket, buffer, sizeof(buffer)) < 0) {
-            rushed_exit(control_socket, -1, "Failed to read PASV response");
+        
+        // Clear buffer and receive response
+        memset(buffer, 0, sizeof(buffer));
+        int total_bytes = 0, bytes_received;
+        while ((bytes_received = recv(control_socket, buffer + total_bytes, MAX_BUFFER_SIZE - total_bytes - 1, 0)) > 0) {
+            total_bytes += bytes_received;
+            buffer[total_bytes] = '\0';
+            if (strstr(buffer, "\r\n")) break; // Full response received
         }
 
-        if (sscanf(buffer, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)",
-                   &byte1, &byte2, &byte3, &byte4, &byte5, &byte6) == 6) {
-            snprintf(passive_ip, MAX_URL_LENGTH, "%d.%d.%d.%d", byte1, byte2, byte3, byte4);
-            *passive_port = (byte5 * 256) + byte6;
-            printf("Passive IP: %s, Passive Port: %d\n", passive_ip, *passive_port);
-            return;
+        if (bytes_received < 0) {
+            rushed_exit(control_socket, -1, "Failed to receive PASV response");
+        }
+
+        printf("PASV Response: %s\n", buffer);
+
+        // Check for 227 response
+        if (strncmp(buffer, "227", 3) == 0) {
+            if (sscanf(buffer, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)",
+                       &byte1, &byte2, &byte3, &byte4, &byte5, &byte6) == 6) {
+                snprintf(passive_ip, MAX_URL_LENGTH, "%d.%d.%d.%d", byte1, byte2, byte3, byte4);
+                *passive_port = (byte5 * 256) + byte6;
+                printf("Passive IP: %s, Passive Port: %d\n", passive_ip, *passive_port);
+                return;
+            } else {
+                fprintf(stderr, "Error: Failed to parse PASV response properly: %s\n", buffer);
+            }
         } else {
-            fprintf(stderr, "Retrying PASV due to parsing failure: %s\n", buffer);
+            fprintf(stderr, "Error: No 227 response in PASV reply: %s\n", buffer);
         }
     }
 
