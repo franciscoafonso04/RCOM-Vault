@@ -125,29 +125,7 @@ pass:
 
 /ip address add address=172.16.1.Y9/24 interface=ether1
 /ip address add address=172.16.Y1.254/24 interface=ether2
-```
 
-### tuxY2
-
-```
-route add default gw 172.16.Y1.254
-```
-
-### tuxY3
-
-```
-route add default gw 172.16.Y0.254
-```
-
-### tuxY4
-
-```
-route add default gw 172.16.Y1.254
-```
-
-### MicroTik Router
-
-```
 /ip route add dst-address=172.16.Y0.0/24 gateway=172.16.Y1.253
 /ip route add dst-address=0.0.0.0/0 gateway=172.16.1.254
 ```
