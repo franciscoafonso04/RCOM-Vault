@@ -1,6 +1,6 @@
-# RCOM-Hub
+# RCOM-Vault
 
-Welcome to the **RCOM-Hub**, a repository containing our projects for the **Computer Networks (Redes de Computadores)** course. 
+Welcome to the **RCOM-Vault**, a repository containing our projects for the **Computer Networks (Redes de Computadores)** course. 
 Here, you'll find implementations and experiments focusing on data communication and networking protocols.
 
 ## Project 1 - Data Link Protocol
